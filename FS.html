@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FriendSync - Coordinate Schedules with Friends</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Import Supabase client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Gray-900 */
+            color: #E5E7EB; /* Gray-200 */
+            background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 30%),
+                              radial-gradient(circle at bottom right, rgba(34, 211, 238, 0.15), transparent 30%);
+            background-attachment: fixed;
+        }
+        .tech-card {
+            background-color: rgba(31, 41, 55, 0.5); /* Gray-800 with transparency */
+            border: 1px solid rgba(75, 85, 99, 0.5); /* Gray-600 with transparency */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 1rem;
+        }
+        .tech-button-primary {
+            background-color: #3B82F6; /* Blue-500 */
+            color: white;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .tech-button-primary:hover {
+            background-color: #2563EB; /* Blue-600 */
+        }
+        .tech-button-secondary {
+            background-color: transparent;
+            border: 1px solid #3B82F6;
+            color: #3B82F6;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+        }
+        .tech-button-secondary:hover {
+             background-color: #3B82F6;
+             color: white;
+        }
+        .tech-input {
+            background-color: rgba(17, 24, 39, 0.8); /* Gray-900 */
+            border: 1px solid #4B5563; /* Gray-600 */
+            color: #E5E7EB;
+            border-radius: 0.5rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .tech-input::placeholder {
+            color: #6B7280; /* Gray-500 */
+        }
+        .tech-input:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        .tech-header {
+            color: #F9FAFB; /* Gray-50 */
+        }
+        .time-slot {
+            transition: background-color 0.2s ease-in-out;
+            user-select: none;
+            background-color: rgba(55, 65, 81, 0.2); /* Gray-700 */
+        }
+        .time-slot.selected {
+            background-color: #3B82F6; /* Blue-500 */
+        }
+        .time-slot:not(.selected):hover {
+            background-color: rgba(59, 130, 246, 0.4);
+        }
+        .tech-table-header {
+            background-color: rgba(55, 65, 81, 0.3);
+        }
+        .tech-table-cell {
+             border: 1px solid #374151; /* Gray-700 */
+        }
+        .font-mono {
+            font-family: 'Roboto Mono', monospace;
+        }
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(17, 24, 39, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login View -->
+    <div id="login-view" class="modal-backdrop">
+        <div class="tech-card p-8 w-full max-w-sm text-center">
+            <h2 class="text-2xl font-bold mb-4 text-center tech-header">Welcome to FriendSync</h2>
+            <p class="text-gray-400 mb-6 text-center text-sm">Sign in to coordinate schedules with your friends.</p>
+            <button id="google-login-btn" class="w-full font-bold py-2 px-4 tech-button-primary flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"></path><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"></path><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.222,0-9.519-3.317-11.284-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"></path><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.089,5.571l6.19,5.238C42.012,36.49,44,30.638,44,24C44,22.659,43.862,21.35,43.611,20.083z"></path></svg>
+                Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- Group Selection View -->
+    <div id="group-selection-modal" class="modal-backdrop hidden">
+        <div class="tech-card p-8 w-full max-w-sm">
+            <h2 class="text-2xl font-bold mb-4 text-center tech-header">Join a Group</h2>
+            <p class="text-gray-400 mb-6 text-center text-sm">Create a group and share the ID, or join an existing one.</p>
+            <div class="space-y-4">
+                <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
+                <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join Group</button>
+                <div class="relative flex py-2 items-center">
+                    <div class="flex-grow border-t border-gray-600"></div>
+                    <span class="flex-shrink mx-4 text-gray-500 text-xs">OR</span>
+                    <div class="flex-grow border-t border-gray-600"></div>
+                </div>
+                <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create a New Group</button>
+            </div>
+             <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+        </div>
+    </div>
+
+
+    <!-- Main App View -->
+    <div id="app-container" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold tech-header">FriendSync</h1>
+            <p class="text-lg text-gray-300 mt-2">Coordinate schedules with your friends effortlessly.</p>
+            <div class="mt-4 space-y-2 md:space-y-0 md:space-x-4 inline-block">
+                 <div id="groupInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg inline-block"></div>
+                <div id="userInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg inline-block"></div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Your Schedule -->
+            <div class="lg:col-span-2 tech-card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-2xl font-bold">My Schedule</h2>
+                    <div>
+                        <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2">Leave Group</button>
+                        <button id="sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                    </div>
+                </div>
+                <p class="text-gray-400 mb-4 text-sm">Mark when you're busy. Click and drag to select multiple slots.</p>
+                <div id="timetable" class="overflow-x-auto rounded-lg"></div>
+            </div>
+
+            <!-- Right Column: Check Availability -->
+            <div class="tech-card p-6">
+                <h2 class="text-2xl font-bold mb-4">Check Availability</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="day-select" class="block text-sm font-medium text-gray-300">Day:</label>
+                        <select id="day-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input"></select>
+                    </div>
+                    <div>
+                        <label for="time-select" class="block text-sm font-medium text-gray-300">Time:</label>
+                        <select id="time-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input"></select>
+                    </div>
+                    <button id="check-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Check Who's Free</button>
+                </div>
+                <div id="results-container" class="mt-6">
+                    <h3 class="text-xl font-bold mb-2">Available Friends</h3>
+                    <div id="free-friends-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
+                        <p class="text-gray-400">Results will be displayed here.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Supabase and App Logic -->
+    <script type="module">
+        const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
+
+        const { createClient } = supabase;
+        const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let user = null;
+        let groupId = null;
+        let userSchedule = [];
+        let allSchedules = {};
+        let realtimeChannel = null;
+
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const startTime = 8, endTime = 18, timeInterval = 60;
+
+        const loginView = document.getElementById('login-view');
+        const groupSelectionModal = document.getElementById('group-selection-modal');
+        const appContainer = document.getElementById('app-container');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const signOutBtn = document.getElementById('sign-out-btn');
+        const groupIdInput = document.getElementById('group-id-input');
+        const joinGroupBtn = document.getElementById('join-group-btn');
+        const createGroupBtn = document.getElementById('create-group-btn');
+        const leaveGroupBtn = document.getElementById('leave-group-btn');
+        const groupError = document.getElementById('group-error');
+        const timetableDiv = document.getElementById('timetable');
+        const daySelect = document.getElementById('day-select');
+        const timeSelect = document.getElementById('time-select');
+        const checkBtn = document.getElementById('check-btn');
+        const freeFriendsList = document.getElementById('free-friends-list');
+        const userInfoDiv = document.getElementById('userInfo');
+        const groupInfoDiv = document.getElementById('groupInfo');
+
+        let isMouseDown = false, isSelecting = false;
+
+        async function handleGoogleLogin() {
+            const { error } = await db.auth.signInWithOAuth({
+                provider: 'google',
+            });
+            if (error) {
+                console.error('Error logging in with Google:', error);
+            }
+        }
+
+        async function handleSignOut() {
+            await db.auth.signOut();
+            localStorage.removeItem('friendSyncGroupId');
+            if (realtimeChannel) {
+                db.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+            window.location.reload();
+        }
+        
+        function handleAuthStateChange(event, session) {
+            if (event === 'SIGNED_IN') {
+                user = session.user;
+                loginView.classList.add('hidden');
+                const savedGroupId = localStorage.getItem('friendSyncGroupId');
+                if (savedGroupId) {
+                    initializeApp(savedGroupId);
+                } else {
+                    groupSelectionModal.classList.remove('hidden');
+                }
+            } else if (event === 'SIGNED_OUT') {
+                user = null;
+                appContainer.classList.add('hidden');
+                groupSelectionModal.classList.add('hidden');
+                loginView.classList.remove('hidden');
+            }
+        }
+
+        async function initializeApp(gId) {
+            groupId = gId;
+            
+            groupSelectionModal.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+            
+            const userName = user.user_metadata?.full_name || 'Unknown User';
+            groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
+            userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
+
+            await loadUserSchedule();
+            await fetchAllSchedules();
+            listenToAllSchedules();
+        }
+
+        function setupGroupListeners() {
+            joinGroupBtn.onclick = async () => {
+                const inputId = groupIdInput.value.trim();
+                if (!inputId) {
+                    groupError.textContent = "Group ID cannot be empty.";
+                    return;
+                }
+                groupError.textContent = "";
+                localStorage.setItem('friendSyncGroupId', inputId);
+                await initializeApp(inputId);
+            };
+
+            createGroupBtn.onclick = () => {
+                const newGroupId = `grp-${Math.random().toString(36).substr(2, 6)}`;
+                localStorage.setItem('friendSyncGroupId', newGroupId);
+                initializeApp(newGroupId);
+            };
+
+            leaveGroupBtn.onclick = () => {
+                if (realtimeChannel) {
+                    db.removeChannel(realtimeChannel);
+                }
+                localStorage.removeItem('friendSyncGroupId');
+                appContainer.classList.add('hidden');
+                groupSelectionModal.classList.remove('hidden');
+            };
+        }
+        
+        function generateTimetable() {
+            let html = '<table class="min-w-full border-collapse">';
+            html += '<thead><tr class="tech-table-header">';
+            html += '<th class="p-2 tech-table-cell font-semibold">Time</th>';
+            days.forEach(day => { html += `<th class="p-2 tech-table-cell font-semibold">${day}</th>`; });
+            html += '</tr></thead><tbody>';
+            for (let h = startTime; h < endTime; h++) {
+                for (let m = 0; m < 60; m += timeInterval) {
+                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    html += `<tr><td class="p-2 text-center text-sm tech-table-cell text-gray-400">${timeStr}</td>`;
+                    days.forEach(day => { html += `<td class="time-slot tech-table-cell" data-day="${day}" data-time="${timeStr}"></td>`; });
+                    html += '</tr>';
+                }
+            }
+            html += '</tbody></table>';
+            timetableDiv.innerHTML = html;
+        }
+
+        function populateSelectors() {
+            daySelect.innerHTML = '';
+            timeSelect.innerHTML = '';
+            days.forEach(day => { daySelect.innerHTML += `<option value="${day}">${day}</option>`; });
+            for (let h = startTime; h < endTime; h++) {
+                for (let m = 0; m < 60; m += timeInterval) {
+                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    timeSelect.innerHTML += `<option value="${timeStr}">${timeStr}</option>`;
+                }
+            }
+        }
+
+        function setupEventListeners() {
+            googleLoginBtn.addEventListener('click', handleGoogleLogin);
+            signOutBtn.addEventListener('click', handleSignOut);
+            timetableDiv.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('time-slot')) {
+                    e.preventDefault();
+                    isMouseDown = true;
+                    isSelecting = !e.target.classList.contains('selected');
+                    toggleSlot(e.target);
+                }
+            });
+            timetableDiv.addEventListener('mouseover', (e) => {
+                if (isMouseDown && e.target.classList.contains('time-slot')) toggleSlot(e.target);
+            });
+            window.addEventListener('mouseup', () => {
+                if(isMouseDown) { isMouseDown = false; saveUserSchedule(); }
+            });
+            checkBtn.addEventListener('click', checkAvailability);
+        }
+
+        function toggleSlot(slot) {
+            if (isSelecting) slot.classList.add('selected');
+            else slot.classList.remove('selected');
+        }
+
+        async function saveUserSchedule() {
+            if (!user || !groupId) return;
+            const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
+                                    .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
+            userSchedule = newSchedule;
+            
+            const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
+            if (error) console.error("Error saving schedule: ", error);
+            else console.log("Schedule saved!");
+        }
+
+        async function loadUserSchedule() {
+            if (!user || !groupId) return;
+            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).eq('group_id', groupId).single();
+            if (error && error.code !== 'PGRST116') {
+                console.error("Error loading schedule: ", error);
+                throw error; 
+            }
+            else if (data) {
+                userSchedule = data.schedule || [];
+                updateTimetableUI();
+            }
+        }
+
+        function updateTimetableUI() {
+            document.querySelectorAll('.time-slot').forEach(slot => slot.classList.remove('selected'));
+            userSchedule.forEach(entry => {
+                const slot = document.querySelector(`.time-slot[data-day="${entry.day}"][data-time="${entry.time}"]`);
+                if (slot) slot.classList.add('selected');
+            });
+        }
+
+        async function fetchAllSchedules() {
+             if (!groupId) return;
+             const { data, error } = await db.from('schedules').select('user_id, schedule').eq('group_id', groupId);
+             if (error) {
+                console.error("Error fetching all schedules:", error);
+                throw error;
+             }
+             allSchedules = {};
+             data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
+             console.log("All schedules for group fetched.");
+             if(freeFriendsList.innerHTML !== '' && !freeFriendsList.querySelector('p')) checkAvailability();
+        }
+        
+        function listenToAllSchedules() {
+            if (realtimeChannel) db.removeChannel(realtimeChannel);
+            
+            realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
+                console.log('Change received for my group!', payload);
+                fetchAllSchedules();
+              })
+              .subscribe();
+        }
+
+        async function checkAvailability() {
+            const selectedDay = daySelect.value, selectedTime = timeSelect.value;
+            if (!selectedDay || !selectedTime) {
+                freeFriendsList.innerHTML = '<p class="text-gray-400">Select a day and time.</p>';
+                return;
+            }
+            const freeFriendIds = Object.keys(allSchedules)
+                .filter(friendId => friendId !== user.id)
+                .filter(friendId => !allSchedules[friendId].some(slot => slot.day === selectedDay && slot.time === selectedTime));
+
+            if (freeFriendIds.length > 0) {
+                const { data: profiles, error } = await db.from('profiles').select('id, full_name').in('id', freeFriendIds);
+                if (error) {
+                    console.error("Error fetching profiles:", error);
+                    renderFreeFriends([]); // Render empty on error
+                    return;
+                }
+                const profileMap = new Map(profiles.map(p => [p.id, p.full_name]));
+                const freeFriends = freeFriendIds.map(id => ({
+                    id: id,
+                    name: profileMap.get(id) || `User (${id.substring(0,6)}...)`
+                }));
+                renderFreeFriends(freeFriends, selectedDay, selectedTime);
+            } else {
+                renderFreeFriends([], selectedDay, selectedTime);
+            }
+        }
+        
+        function renderFreeFriends(freeFriends, day, time) {
+            freeFriendsList.innerHTML = '';
+            const header = document.createElement('p');
+            header.className = 'text-gray-300 mb-3';
+            header.textContent = `At ${time} on ${day}:`;
+            freeFriendsList.appendChild(header);
+            if (freeFriends.length === 0) {
+                const noOneFree = document.createElement('div');
+                noOneFree.className = 'text-center p-4 bg-yellow-600 bg-opacity-20 border border-yellow-500 text-yellow-300 rounded-md';
+                noOneFree.textContent = 'No other friends are available.';
+                freeFriendsList.appendChild(noOneFree);
+            } else {
+                const list = document.createElement('ul');
+                list.className = 'space-y-2';
+                freeFriends.forEach(friend => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'bg-green-600 bg-opacity-20 border border-green-500 text-green-300 p-2 rounded-md text-sm';
+                    listItem.textContent = `${friend.name} is available`;
+                    list.appendChild(listItem);
+                });
+                freeFriendsList.appendChild(list);
+            }
+        }
+
+        // --- Initial Load ---
+        generateTimetable();
+        populateSelectors();
+        setupEventListeners();
+        setupGroupListeners();
+        db.auth.onAuthStateChange(handleAuthStateChange);
+
+    </script>
+</body>
+</html>
