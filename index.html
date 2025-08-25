@@ -194,7 +194,7 @@
     <!-- Supabase and App Logic -->
     <script type="module">
         const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb373q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -294,15 +294,28 @@
 
         function setupGroupListeners() {
             joinGroupBtn.onclick = async () => {
-                // FIX: Convert group ID to lowercase for consistency
                 const inputId = groupIdInput.value.trim().toLowerCase();
                 if (!inputId) {
                     groupError.textContent = "Please enter a Group ID.";
                     return;
                 }
-                groupError.textContent = "";
+                groupError.textContent = "Checking...";
 
-                // FIX: Add user to the group_memberships table immediately
+                // FIX: Check if the group exists before trying to join.
+                const { data, error: checkError } = await db.from('groups').select('id').eq('id', inputId).limit(1);
+
+                if (checkError) {
+                    console.error("Error checking group existence:", checkError);
+                    groupError.textContent = "Error checking group.";
+                    return;
+                }
+
+                if (data.length === 0) {
+                    groupError.textContent = "Group does not exist.";
+                    return;
+                }
+
+                // If group exists, proceed to join.
                 const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
                 if (membershipError) {
                     console.error("Error joining group membership:", membershipError);
@@ -315,7 +328,6 @@
             };
 
             createGroupBtn.onclick = async () => {
-                // FIX: Convert group ID to lowercase for consistency
                 const inputId = groupIdInput.value.trim().toLowerCase();
                 if (!inputId) {
                     groupError.textContent = "Please enter a Group ID.";
@@ -341,7 +353,6 @@
                         return;
                     }
                     
-                    // FIX: Add creator to the group_memberships table immediately
                     const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
                     if (membershipError) {
                         console.error("Error adding creator to group membership:", membershipError);
@@ -359,7 +370,6 @@
                 if (realtimeChannel) {
                     db.removeChannel(realtimeChannel);
                 }
-                // FIX: Remove user from group_memberships table on leave
                 if (user && groupId) {
                     await db.from('group_memberships').delete().match({ user_id: user.id, group_id: groupId });
                 }
