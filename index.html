@@ -306,8 +306,8 @@
                 }
                 
                 groupError.textContent = "Checking...";
-                // Check if group ID already exists
-                const { data, error } = await db.from('schedules').select('group_id').eq('group_id', inputId).limit(1);
+                // Check if group ID already exists in the new 'groups' table
+                const { data, error } = await db.from('groups').select('id').eq('id', inputId).limit(1);
 
                 if (error) {
                     console.error("Error checking group ID:", error);
@@ -318,6 +318,13 @@
                 if (data.length > 0) {
                     groupError.textContent = "Group ID already taken.";
                 } else {
+                    // If not taken, create it
+                    const { error: insertError } = await db.from('groups').insert({ id: inputId, created_by: user.id });
+                    if(insertError) {
+                        console.error("Error creating group:", insertError);
+                        groupError.textContent = "Could not create group.";
+                        return;
+                    }
                     groupError.textContent = "";
                     localStorage.setItem('friendSyncGroupId', inputId);
                     await initializeApp(inputId);
@@ -342,7 +349,6 @@
                     if (navigator.share) {
                         await navigator.share(shareData);
                     } else {
-                        // Fallback for browsers that don't support navigator.share
                         navigator.clipboard.writeText(groupId);
                         inviteBtn.textContent = 'ID Copied!';
                         setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
@@ -550,8 +556,6 @@
             const userIds = [...new Set(scheduleData.map(s => s.user_id))];
 
             if (userIds.length === 0) {
-                // If no schedules, it might just be the current user who hasn't saved yet.
-                // So we add the current user to the list.
                 userIds.push(user.id);
             }
 
