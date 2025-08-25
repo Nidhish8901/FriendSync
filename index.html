@@ -194,7 +194,9 @@
     <!-- Supabase and App Logic -->
     <script type="module">
         const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb373q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
+        // FIX: The key below is likely invalid. 
+        // Go to your Supabase project -> Settings -> API -> Project API keys -> copy the 'anon' 'public' key and paste it here.
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
