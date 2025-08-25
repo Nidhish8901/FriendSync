@@ -228,7 +228,7 @@
         let realtimeChannel = null;
 
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-        const startTime = 8, endTime = 18, timeInterval = 60;
+        const startTime = 8, endTime = 18;
 
         const loginView = document.getElementById('login-view');
         const groupDashboardView = document.getElementById('group-dashboard-view');
@@ -328,7 +328,6 @@
             groupDashboardView.classList.add('hidden');
             appContainer.classList.remove('hidden');
             
-            // FIX: Immediately clear previous group data from UI
             groupMembersList.innerHTML = '<p class="text-gray-400">Loading members...</p>';
             freeFriendsList.innerHTML = '<p class="text-gray-400">Results will be displayed here.</p>';
             allSchedules = {};
@@ -444,12 +443,13 @@
             days.forEach(day => { html += `<th class="p-2 tech-table-cell font-semibold">${day}</th>`; });
             html += '</tr></thead><tbody>';
             for (let h = startTime; h < endTime; h++) {
-                for (let m = 0; m < 60; m += timeInterval) {
-                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    html += `<tr><td class="p-2 text-center text-sm tech-table-cell text-gray-400">${timeStr}</td>`;
-                    days.forEach(day => { html += `<td class="time-slot tech-table-cell" data-day="${day}" data-time="${timeStr}"></td>`; });
-                    html += '</tr>';
-                }
+                const startHourStr = String(h).padStart(2, '0');
+                const timeLabel = `${startHourStr}:00 - ${startHourStr}:50`;
+                const dataTime = `${startHourStr}:00`;
+
+                html += `<tr><td class="p-2 text-center text-sm tech-table-cell text-gray-400">${timeLabel}</td>`;
+                days.forEach(day => { html += `<td class="time-slot tech-table-cell" data-day="${day}" data-time="${dataTime}"></td>`; });
+                html += '</tr>';
             }
             html += '</tbody></table>';
             timetableDiv.innerHTML = html;
@@ -460,10 +460,10 @@
             timeSelect.innerHTML = '';
             days.forEach(day => { daySelect.innerHTML += `<option value="${day}">${day}</option>`; });
             for (let h = startTime; h < endTime; h++) {
-                for (let m = 0; m < 60; m += timeInterval) {
-                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    timeSelect.innerHTML += `<option value="${timeStr}">${timeStr}</option>`;
-                }
+                const startHourStr = String(h).padStart(2, '0');
+                const timeLabel = `${startHourStr}:00 - ${startHourStr}:50`;
+                const dataTime = `${startHourStr}:00`;
+                timeSelect.innerHTML += `<option value="${dataTime}">${timeLabel}</option>`;
             }
         }
 
