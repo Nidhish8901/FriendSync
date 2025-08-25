@@ -96,6 +96,15 @@
             align-items: center;
             z-index: 100;
         }
+        .group-list-item {
+            background-color: rgba(55, 65, 81, 0.3);
+            border: 1px solid #4B5563;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        .group-list-item:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: #3B82F6;
+        }
     </style>
 </head>
 <body>
@@ -111,16 +120,29 @@
         </div>
     </div>
 
-    <!-- Group Selection View -->
-    <div id="group-selection-modal" class="modal-backdrop hidden">
-        <div class="tech-card p-8 w-full max-w-sm">
-            <h2 class="text-2xl font-bold mb-4 text-center tech-header">Join or Create a Group</h2>
-            <div class="space-y-4">
-                <input id="group-id-input" type="text" placeholder="Enter Group ID to join or create" class="w-full px-4 py-2 tech-input">
-                <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join Group</button>
-                <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create This Group</button>
+    <!-- NEW: Group Dashboard View -->
+    <div id="group-dashboard-view" class="modal-backdrop hidden">
+        <div class="tech-card p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                 <h2 class="text-2xl font-bold tech-header">Your Groups</h2>
+                 <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
             </div>
-             <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+           
+            <div id="user-groups-list" class="space-y-3 max-h-60 overflow-y-auto mb-6 pr-2">
+                <!-- User groups will be dynamically inserted here -->
+            </div>
+
+            <div class="border-t border-gray-700 pt-6">
+                 <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
+                 <div class="space-y-4">
+                    <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
+                    <div class="flex space-x-4">
+                        <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join</button>
+                        <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create</button>
+                    </div>
+                </div>
+                <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+            </div>
         </div>
     </div>
 
@@ -149,8 +171,9 @@
                             <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
-                        <button id="leave-group-btn" class="ml-4 text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
-                        <button id="sign-out-btn" class="ml-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                        <!-- NEW: Switch Group Button -->
+                        <button id="switch-group-btn" class="ml-4 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Switch Group</button>
+                        <button id="leave-group-btn" class="ml-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
                     </div>
                 </div>
                 <p class="text-gray-400 mb-4 text-sm">Mark when you're busy. Click and drag to select multiple slots.</p>
@@ -200,7 +223,7 @@
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let user = null;
-        let groupId = null;
+        let groupId = null; // Represents the currently selected group
         let userSchedule = [];
         let allSchedules = {};
         let realtimeChannel = null;
@@ -209,10 +232,10 @@
         const startTime = 8, endTime = 18, timeInterval = 60;
 
         const loginView = document.getElementById('login-view');
-        const groupSelectionModal = document.getElementById('group-selection-modal');
+        const groupDashboardView = document.getElementById('group-dashboard-view');
         const appContainer = document.getElementById('app-container');
         const googleLoginBtn = document.getElementById('google-login-btn');
-        const signOutBtn = document.getElementById('sign-out-btn');
+        const dashboardSignOutBtn = document.getElementById('dashboard-sign-out-btn');
         const saveScheduleBtn = document.getElementById('save-schedule-btn');
         const saveFeedback = document.getElementById('save-feedback');
         const saveError = document.getElementById('save-error');
@@ -220,6 +243,7 @@
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
         const leaveGroupBtn = document.getElementById('leave-group-btn');
+        const switchGroupBtn = document.getElementById('switch-group-btn');
         const inviteBtn = document.getElementById('invite-btn');
         const groupError = document.getElementById('group-error');
         const timetableDiv = document.getElementById('timetable');
@@ -228,23 +252,19 @@
         const checkBtn = document.getElementById('check-btn');
         const freeFriendsList = document.getElementById('free-friends-list');
         const groupMembersList = document.getElementById('group-members-list');
+        const userGroupsList = document.getElementById('user-groups-list');
         const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
 
         let isMouseDown = false, isSelecting = false;
 
         async function handleGoogleLogin() {
-            const { error } = await db.auth.signInWithOAuth({
-                provider: 'google',
-            });
-            if (error) {
-                console.error('Error logging in with Google:', error);
-            }
+            const { error } = await db.auth.signInWithOAuth({ provider: 'google' });
+            if (error) console.error('Error logging in with Google:', error);
         }
 
         async function handleSignOut() {
             await db.auth.signOut();
-            localStorage.removeItem('friendSyncGroupId');
             if (realtimeChannel) {
                 db.removeChannel(realtimeChannel);
                 realtimeChannel = null;
@@ -255,52 +275,71 @@
         async function handleAuthStateChange(event, session) {
             if (event === 'SIGNED_IN') {
                 user = session.user;
-
-                // FIX: Link auth user to profiles table
                 const { error } = await db.from('profiles').upsert({
                     id: user.id,
                     full_name: user.user_metadata.full_name,
                 });
                 if (error) console.error("Error saving user profile:", error);
 
-
                 loginView.classList.add('hidden');
-                const savedGroupId = localStorage.getItem('friendSyncGroupId');
-                if (savedGroupId) {
-                    initializeApp(savedGroupId);
-                } else {
-                    groupSelectionModal.classList.remove('hidden');
-                }
+                await showGroupDashboard();
+
             } else if (event === 'SIGNED_OUT') {
                 user = null;
                 appContainer.classList.add('hidden');
-                groupSelectionModal.classList.add('hidden');
+                groupDashboardView.classList.add('hidden');
                 loginView.classList.remove('hidden');
             }
+        }
+
+        async function showGroupDashboard() {
+            if (realtimeChannel) {
+                db.removeChannel(realtimeChannel);
+                realtimeChannel = null;
+            }
+            appContainer.classList.add('hidden');
+            groupDashboardView.classList.remove('hidden');
+
+            const { data, error } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
+            if (error) {
+                console.error("Error fetching user groups:", error);
+                return;
+            }
+            renderUserGroups(data.map(g => g.group_id));
+        }
+
+        function renderUserGroups(groups) {
+            userGroupsList.innerHTML = '';
+            if (groups.length === 0) {
+                userGroupsList.innerHTML = '<p class="text-center text-gray-400">You are not in any groups yet.</p>';
+                return;
+            }
+            groups.forEach(gId => {
+                const groupButton = document.createElement('button');
+                groupButton.className = 'w-full text-left p-3 rounded-lg group-list-item font-mono';
+                groupButton.textContent = gId;
+                groupButton.onclick = () => initializeApp(gId);
+                userGroupsList.appendChild(groupButton);
+            });
         }
 
         async function initializeApp(gId) {
             groupId = gId;
             
-            groupSelectionModal.classList.add('hidden');
+            groupDashboardView.classList.add('hidden');
             appContainer.classList.remove('hidden');
             
             const userName = user.user_metadata?.full_name || 'Unknown User';
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
-            const { data, error } = await db.from('schedules')
-                .select('user_id')
-                .match({ user_id: user.id, group_id: gId })
-                .limit(1);
+            const { data, error } = await db.from('schedules').select('user_id').match({ user_id: user.id, group_id: gId }).limit(1);
 
             if (error) {
                 console.error("Error checking for schedule:", error);
             } else if (data.length === 0) {
                 const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
-                if (insertError) {
-                    console.error("Error creating initial schedule:", insertError);
-                }
+                if (insertError) console.error("Error creating initial schedule:", insertError);
             }
 
             await loadUserSchedule();
@@ -337,9 +376,10 @@
                     groupError.textContent = "Could not join group.";
                     return;
                 }
-
-                localStorage.setItem('friendSyncGroupId', inputId);
-                await initializeApp(inputId);
+                
+                groupError.textContent = "";
+                groupIdInput.value = "";
+                await showGroupDashboard();
             };
 
             createGroupBtn.onclick = async () => {
@@ -376,40 +416,21 @@
                     }
 
                     groupError.textContent = "";
-                    localStorage.setItem('friendSyncGroupId', inputId);
-                    await initializeApp(inputId);
+                    groupIdInput.value = "";
+                    await showGroupDashboard();
                 }
             };
 
             leaveGroupBtn.onclick = async () => {
-                if (realtimeChannel) {
-                    db.removeChannel(realtimeChannel);
-                }
+                if (!confirm(`Are you sure you want to leave the group "${groupId}"?`)) return;
+
                 if (user && groupId) {
                     await db.from('group_memberships').delete().match({ user_id: user.id, group_id: groupId });
                 }
-                localStorage.removeItem('friendSyncGroupId');
-                appContainer.classList.add('hidden');
-                groupSelectionModal.classList.remove('hidden');
+                await showGroupDashboard();
             };
-
-            inviteBtn.onclick = async () => {
-                const shareData = {
-                    title: 'FriendSync Invite',
-                    text: `Join my schedule group on FriendSync! Group ID: ${groupId}`,
-                };
-                try {
-                    if (navigator.share) {
-                        await navigator.share(shareData);
-                    } else {
-                        navigator.clipboard.writeText(groupId);
-                        inviteBtn.textContent = 'ID Copied!';
-                        setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
-                    }
-                } catch (err) {
-                    console.error("Share failed:", err);
-                }
-            };
+            
+            switchGroupBtn.onclick = showGroupDashboard;
         }
         
         function generateTimetable() {
@@ -444,7 +465,7 @@
 
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', handleGoogleLogin);
-            signOutBtn.addEventListener('click', handleSignOut);
+            dashboardSignOutBtn.addEventListener('click', handleSignOut);
             saveScheduleBtn.addEventListener('click', saveUserSchedule);
 
             timetableDiv.addEventListener('mousedown', (e) => {
@@ -489,15 +510,11 @@
                 console.error("Error saving schedule: ", error);
                 saveError.textContent = 'Save Failed!';
                 saveError.classList.remove('opacity-0');
-                setTimeout(() => {
-                    saveError.classList.add('opacity-0');
-                }, 3000);
+                setTimeout(() => saveError.classList.add('opacity-0'), 3000);
             } else {
                 console.log("Schedule saved!");
                 saveFeedback.classList.remove('opacity-0');
-                setTimeout(() => {
-                    saveFeedback.classList.add('opacity-0');
-                }, 2000);
+                setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
             }
         }
 
@@ -607,7 +624,6 @@
 
         async function fetchGroupMembers() {
             if (!groupId) return;
-            // Get members from the group_memberships table
             const { data: memberData, error: memberError } = await db.from('group_memberships').select('user_id').eq('group_id', groupId);
             if (memberError) {
                 console.error("Error fetching group members:", memberError);
