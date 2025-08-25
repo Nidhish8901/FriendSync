@@ -280,12 +280,24 @@
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
-            // This ensures the user has a schedule record, creating one if it doesn't exist.
-            const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: [] });
-            if (upsertError && upsertError.code !== '23505') { // 23505 is unique violation, which is fine
-                console.error("Error ensuring schedule exists:", upsertError);
+            // FIX: Prevent overwriting saved schedule on login.
+            // First, check if a schedule record already exists.
+            const { data, error } = await db.from('schedules')
+                .select('user_id')
+                .match({ user_id: user.id, group_id: gId })
+                .limit(1);
+
+            if (error) {
+                console.error("Error checking for schedule:", error);
+            } else if (data.length === 0) {
+                // If no record exists, create a new one with an empty schedule.
+                const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
+                if (insertError) {
+                    console.error("Error creating initial schedule:", insertError);
+                }
             }
 
+            // Now that we're sure a record exists, load the data.
             await loadUserSchedule();
             await fetchAllSchedules();
             await fetchGroupMembers();
@@ -514,8 +526,10 @@
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
              console.log("All schedules for group fetched.");
-             // FIX: Re-run the check if results are already displayed
-             if(freeFriendsList.innerHTML !== '' && !freeFriendsList.querySelector('p')) {
+             
+             // FIX: Check if the results area has been populated (i.e., it's not in its initial placeholder state).
+             const isShowingResults = freeFriendsList.querySelector('ul') || freeFriendsList.querySelector('div');
+             if (isShowingResults) {
                 checkAvailability();
              }
         }
@@ -658,4 +672,3 @@
     </script>
 </body>
 </html>
-
