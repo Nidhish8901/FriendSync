@@ -194,8 +194,6 @@
     <!-- Supabase and App Logic -->
     <script type="module">
         const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
-        // FIX: The key below is likely invalid. 
-        // Go to your Supabase project -> Settings -> API -> Project API keys -> copy the 'anon' 'public' key and paste it here.
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
 
         const { createClient } = supabase;
@@ -303,7 +301,6 @@
                 }
                 groupError.textContent = "Checking...";
 
-                // FIX: Check if the group exists before trying to join.
                 const { data, error: checkError } = await db.from('groups').select('id').eq('id', inputId).limit(1);
 
                 if (checkError) {
@@ -317,7 +314,6 @@
                     return;
                 }
 
-                // If group exists, proceed to join.
                 const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
                 if (membershipError) {
                     console.error("Error joining group membership:", membershipError);
@@ -467,7 +463,6 @@
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
             userSchedule = newSchedule;
             
-            // FIX: Use upsert for reliability. It will update if the record exists, or create it if it doesn't.
             const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
             
             saveScheduleBtn.disabled = false;
@@ -519,8 +514,8 @@
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
              console.log("All schedules for group fetched.");
-             // Re-run the check if results are already displayed
-             if(document.getElementById('results-container').offsetParent !== null) {
+             // FIX: Re-run the check if results are already displayed
+             if(freeFriendsList.innerHTML !== '' && !freeFriendsList.querySelector('p')) {
                 checkAvailability();
              }
         }
@@ -531,7 +526,6 @@
             realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for schedules!', payload);
-                // FIX: When a change is detected, re-fetch all schedules to update the local state
                 fetchAllSchedules();
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
@@ -664,3 +658,4 @@
     </script>
 </body>
 </html>
+
