@@ -147,7 +147,11 @@
             <div class="lg:col-span-2 tech-card p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">My Schedule</h2>
-                    <div>
+                    <div class="flex items-center">
+                        <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 relative">
+                            Save Schedule
+                            <span id="save-feedback" class="absolute right-[-1rem] top-1/2 -translate-y-1/2 text-green-400 opacity-0 transition-opacity">✓</span>
+                        </button>
                         <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2">Leave Group</button>
                         <button id="sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
                     </div>
@@ -176,6 +180,13 @@
                         <p class="text-gray-400">Results will be displayed here.</p>
                     </div>
                 </div>
+                <!-- NEW: Group Members Section -->
+                <div id="members-container" class="mt-6">
+                    <h3 class="text-xl font-bold mb-2">Group Members</h3>
+                    <div id="group-members-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
+                        <p class="text-gray-400">Loading members...</p>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -202,6 +213,8 @@
         const appContainer = document.getElementById('app-container');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const signOutBtn = document.getElementById('sign-out-btn');
+        const saveScheduleBtn = document.getElementById('save-schedule-btn');
+        const saveFeedback = document.getElementById('save-feedback');
         const groupIdInput = document.getElementById('group-id-input');
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
@@ -212,6 +225,7 @@
         const timeSelect = document.getElementById('time-select');
         const checkBtn = document.getElementById('check-btn');
         const freeFriendsList = document.getElementById('free-friends-list');
+        const groupMembersList = document.getElementById('group-members-list');
         const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
 
@@ -266,6 +280,7 @@
 
             await loadUserSchedule();
             await fetchAllSchedules();
+            await fetchGroupMembers();
             listenToAllSchedules();
         }
 
@@ -330,6 +345,8 @@
         function setupEventListeners() {
             googleLoginBtn.addEventListener('click', handleGoogleLogin);
             signOutBtn.addEventListener('click', handleSignOut);
+            saveScheduleBtn.addEventListener('click', saveUserSchedule);
+
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
                     e.preventDefault();
@@ -342,7 +359,7 @@
                 if (isMouseDown && e.target.classList.contains('time-slot')) toggleSlot(e.target);
             });
             window.addEventListener('mouseup', () => {
-                if(isMouseDown) { isMouseDown = false; saveUserSchedule(); }
+                if(isMouseDown) { isMouseDown = false; } // Removed automatic save
             });
             checkBtn.addEventListener('click', checkAvailability);
         }
@@ -354,13 +371,29 @@
 
         async function saveUserSchedule() {
             if (!user || !groupId) return;
+
+            saveScheduleBtn.disabled = true;
+            saveScheduleBtn.textContent = 'Saving...';
+
             const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
             userSchedule = newSchedule;
             
             const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
-            if (error) console.error("Error saving schedule: ", error);
-            else console.log("Schedule saved!");
+            
+            saveScheduleBtn.disabled = false;
+            saveScheduleBtn.textContent = 'Save Schedule';
+
+            if (error) {
+                console.error("Error saving schedule: ", error);
+                alert("Could not save schedule. See console for details.");
+            } else {
+                console.log("Schedule saved!");
+                saveFeedback.classList.remove('opacity-0');
+                setTimeout(() => {
+                    saveFeedback.classList.add('opacity-0');
+                }, 2000);
+            }
         }
 
         async function loadUserSchedule() {
@@ -404,6 +437,7 @@
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for my group!', payload);
                 fetchAllSchedules();
+                fetchGroupMembers(); // Refresh group members when a change occurs
               })
               .subscribe();
         }
@@ -457,6 +491,68 @@
                     list.appendChild(listItem);
                 });
                 freeFriendsList.appendChild(list);
+            }
+        }
+
+        async function fetchGroupMembers() {
+            if (!groupId) return;
+            // 1. Get all unique user IDs from the schedules table for the current group
+            const { data: scheduleData, error: scheduleError } = await db.from('schedules').select('user_id').eq('group_id', groupId);
+            if (scheduleError) {
+                console.error("Error fetching group members' schedules:", scheduleError);
+                return;
+            }
+            const userIds = [...new Set(scheduleData.map(s => s.user_id))];
+
+            if (userIds.length === 0) {
+                renderGroupMembers([]);
+                return;
+            }
+
+            // 2. Get the profiles for those user IDs
+            const { data: profiles, error: profileError } = await db.from('profiles').select('id, full_name').in('id', userIds);
+            if (profileError) {
+                console.error("Error fetching group members' profiles:", profileError);
+                return;
+            }
+            
+            const members = userIds.map(id => {
+                const profile = profiles.find(p => p.id === id);
+                return {
+                    id: id,
+                    name: profile?.full_name || `User (${id.substring(0,6)}...)`
+                };
+            });
+            
+            renderGroupMembers(members);
+        }
+
+        function renderGroupMembers(members) {
+            groupMembersList.innerHTML = '';
+            if (members.length === 0) {
+                const noMembers = document.createElement('p');
+                noMembers.className = 'text-gray-400';
+                noMembers.textContent = 'You are the first one here!';
+                groupMembersList.appendChild(noMembers);
+            } else {
+                const list = document.createElement('ul');
+                list.className = 'space-y-2';
+                members.forEach(member => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'bg-gray-800 border border-gray-700 text-gray-300 p-2 rounded-md text-sm flex items-center';
+                    const icon = document.createElement('span');
+                    icon.className = 'w-2 h-2 bg-green-400 rounded-full mr-3';
+                    listItem.appendChild(icon);
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = member.name;
+                    if (member.id === user.id) {
+                        nameSpan.textContent += " (You)";
+                        nameSpan.className = "font-bold";
+                    }
+                    listItem.appendChild(nameSpan);
+                    list.appendChild(listItem);
+                });
+                groupMembersList.appendChild(list);
             }
         }
 
