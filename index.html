@@ -114,17 +114,11 @@
     <!-- Group Selection View -->
     <div id="group-selection-modal" class="modal-backdrop hidden">
         <div class="tech-card p-8 w-full max-w-sm">
-            <h2 class="text-2xl font-bold mb-4 text-center tech-header">Join a Group</h2>
-            <p class="text-gray-400 mb-6 text-center text-sm">Create a group and share the ID, or join an existing one.</p>
+            <h2 class="text-2xl font-bold mb-4 text-center tech-header">Join or Create a Group</h2>
             <div class="space-y-4">
-                <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
+                <input id="group-id-input" type="text" placeholder="Enter Group ID to join or create" class="w-full px-4 py-2 tech-input">
                 <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join Group</button>
-                <div class="relative flex py-2 items-center">
-                    <div class="flex-grow border-t border-gray-600"></div>
-                    <span class="flex-shrink mx-4 text-gray-500 text-xs">OR</span>
-                    <div class="flex-grow border-t border-gray-600"></div>
-                </div>
-                <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create a New Group</button>
+                <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create This Group</button>
             </div>
              <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
         </div>
@@ -185,7 +179,10 @@
                 </div>
                 <!-- Group Members Section -->
                 <div id="members-container" class="mt-6">
-                    <h3 class="text-xl font-bold mb-2">Group Members</h3>
+                    <div class="flex justify-between items-center mb-2">
+                         <h3 class="text-xl font-bold">Group Members</h3>
+                         <button id="invite-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Invite</button>
+                    </div>
                     <div id="group-members-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
                         <p class="text-gray-400">Loading members...</p>
                     </div>
@@ -223,6 +220,7 @@
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
         const leaveGroupBtn = document.getElementById('leave-group-btn');
+        const inviteBtn = document.getElementById('invite-btn');
         const groupError = document.getElementById('group-error');
         const timetableDiv = document.getElementById('timetable');
         const daySelect = document.getElementById('day-select');
@@ -292,7 +290,7 @@
             joinGroupBtn.onclick = async () => {
                 const inputId = groupIdInput.value.trim();
                 if (!inputId) {
-                    groupError.textContent = "Group ID cannot be empty.";
+                    groupError.textContent = "Please enter a Group ID.";
                     return;
                 }
                 groupError.textContent = "";
@@ -300,10 +298,30 @@
                 await initializeApp(inputId);
             };
 
-            createGroupBtn.onclick = () => {
-                const newGroupId = `grp-${Math.random().toString(36).substr(2, 6)}`;
-                localStorage.setItem('friendSyncGroupId', newGroupId);
-                initializeApp(newGroupId);
+            createGroupBtn.onclick = async () => {
+                const inputId = groupIdInput.value.trim();
+                if (!inputId) {
+                    groupError.textContent = "Please enter a Group ID.";
+                    return;
+                }
+                
+                groupError.textContent = "Checking...";
+                // Check if group ID already exists
+                const { data, error } = await db.from('schedules').select('group_id').eq('group_id', inputId).limit(1);
+
+                if (error) {
+                    console.error("Error checking group ID:", error);
+                    groupError.textContent = "Error checking ID.";
+                    return;
+                }
+
+                if (data.length > 0) {
+                    groupError.textContent = "Group ID already taken.";
+                } else {
+                    groupError.textContent = "";
+                    localStorage.setItem('friendSyncGroupId', inputId);
+                    await initializeApp(inputId);
+                }
             };
 
             leaveGroupBtn.onclick = () => {
@@ -313,6 +331,25 @@
                 localStorage.removeItem('friendSyncGroupId');
                 appContainer.classList.add('hidden');
                 groupSelectionModal.classList.remove('hidden');
+            };
+
+            inviteBtn.onclick = async () => {
+                const shareData = {
+                    title: 'FriendSync Invite',
+                    text: `Join my schedule group on FriendSync! Group ID: ${groupId}`,
+                };
+                try {
+                    if (navigator.share) {
+                        await navigator.share(shareData);
+                    } else {
+                        // Fallback for browsers that don't support navigator.share
+                        navigator.clipboard.writeText(groupId);
+                        inviteBtn.textContent = 'ID Copied!';
+                        setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
+                    }
+                } catch (err) {
+                    console.error("Share failed:", err);
+                }
             };
         }
         
@@ -513,8 +550,9 @@
             const userIds = [...new Set(scheduleData.map(s => s.user_id))];
 
             if (userIds.length === 0) {
-                renderGroupMembers([]);
-                return;
+                // If no schedules, it might just be the current user who hasn't saved yet.
+                // So we add the current user to the list.
+                userIds.push(user.id);
             }
 
             const { data: profiles, error: profileError } = await db.from('profiles').select('id, full_name').in('id', userIds);
