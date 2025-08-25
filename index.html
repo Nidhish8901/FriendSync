@@ -465,7 +465,8 @@
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
             userSchedule = newSchedule;
             
-            const { error } = await db.from('schedules').update({ schedule: userSchedule }).match({ user_id: user.id, group_id: groupId });
+            // FIX: Use upsert for reliability. It will update if the record exists, or create it if it doesn't.
+            const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
             
             saveScheduleBtn.disabled = false;
             saveScheduleBtn.textContent = 'Save Schedule';
