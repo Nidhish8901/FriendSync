@@ -270,27 +270,6 @@
             }
         }
 
-        // This function creates an empty schedule for the user in the group if one doesn't exist.
-        // This effectively "registers" them as a member of the group immediately upon joining.
-        async function ensureUserIsInGroup(gId) {
-            if (!user) return;
-            const { data, error } = await db.from('schedules').select('user_id').eq('user_id', user.id).eq('group_id', gId).limit(1);
-
-            if (error) {
-                console.error("Error checking for existing schedule:", error);
-                return;
-            }
-
-            if (data.length === 0) {
-                const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
-                if (insertError) {
-                    console.error("Error creating initial schedule record:", insertError);
-                } else {
-                    console.log("User added to group with an empty schedule.");
-                }
-            }
-        }
-
         async function initializeApp(gId) {
             groupId = gId;
             
@@ -301,7 +280,12 @@
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
-            await ensureUserIsInGroup(gId);
+            // This ensures the user has a schedule record, creating one if it doesn't exist.
+            const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: [] });
+            if (upsertError && upsertError.code !== '23505') { // 23505 is unique violation, which is fine
+                console.error("Error ensuring schedule exists:", upsertError);
+            }
+
             await loadUserSchedule();
             await fetchAllSchedules();
             await fetchGroupMembers();
@@ -310,18 +294,29 @@
 
         function setupGroupListeners() {
             joinGroupBtn.onclick = async () => {
-                const inputId = groupIdInput.value.trim();
+                // FIX: Convert group ID to lowercase for consistency
+                const inputId = groupIdInput.value.trim().toLowerCase();
                 if (!inputId) {
                     groupError.textContent = "Please enter a Group ID.";
                     return;
                 }
                 groupError.textContent = "";
+
+                // FIX: Add user to the group_memberships table immediately
+                const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
+                if (membershipError) {
+                    console.error("Error joining group membership:", membershipError);
+                    groupError.textContent = "Could not join group.";
+                    return;
+                }
+
                 localStorage.setItem('friendSyncGroupId', inputId);
                 await initializeApp(inputId);
             };
 
             createGroupBtn.onclick = async () => {
-                const inputId = groupIdInput.value.trim();
+                // FIX: Convert group ID to lowercase for consistency
+                const inputId = groupIdInput.value.trim().toLowerCase();
                 if (!inputId) {
                     groupError.textContent = "Please enter a Group ID.";
                     return;
@@ -345,15 +340,28 @@
                         groupError.textContent = "Could not create group.";
                         return;
                     }
+                    
+                    // FIX: Add creator to the group_memberships table immediately
+                    const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
+                    if (membershipError) {
+                        console.error("Error adding creator to group membership:", membershipError);
+                        groupError.textContent = "Could not join group.";
+                        return;
+                    }
+
                     groupError.textContent = "";
                     localStorage.setItem('friendSyncGroupId', inputId);
                     await initializeApp(inputId);
                 }
             };
 
-            leaveGroupBtn.onclick = () => {
+            leaveGroupBtn.onclick = async () => {
                 if (realtimeChannel) {
                     db.removeChannel(realtimeChannel);
+                }
+                // FIX: Remove user from group_memberships table on leave
+                if (user && groupId) {
+                    await db.from('group_memberships').delete().match({ user_id: user.id, group_id: groupId });
                 }
                 localStorage.removeItem('friendSyncGroupId');
                 appContainer.classList.add('hidden');
@@ -447,7 +455,7 @@
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
             userSchedule = newSchedule;
             
-            const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
+            const { error } = await db.from('schedules').update({ schedule: userSchedule }).match({ user_id: user.id, group_id: groupId });
             
             saveScheduleBtn.disabled = false;
             saveScheduleBtn.textContent = 'Save Schedule';
@@ -471,9 +479,8 @@
         async function loadUserSchedule() {
             if (!user || !groupId) return;
             const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).eq('group_id', groupId).single();
-            if (error && error.code !== 'PGRST116') {
+            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is ok
                 console.error("Error loading schedule: ", error);
-                throw error; 
             }
             else if (data) {
                 userSchedule = data.schedule || [];
@@ -494,7 +501,7 @@
              const { data, error } = await db.from('schedules').select('user_id, schedule').eq('group_id', groupId);
              if (error) {
                 console.error("Error fetching all schedules:", error);
-                throw error;
+                return;
              }
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
@@ -507,8 +514,11 @@
             
             realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
-                console.log('Change received for my group!', payload);
+                console.log('Change received for schedules!', payload);
                 fetchAllSchedules();
+              })
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
+                console.log('Change received for members!', payload);
                 fetchGroupMembers();
               })
               .subscribe();
@@ -568,16 +578,13 @@
 
         async function fetchGroupMembers() {
             if (!groupId) return;
-            const { data: scheduleData, error: scheduleError } = await db.from('schedules').select('user_id').eq('group_id', groupId);
-            if (scheduleError) {
-                console.error("Error fetching group members' schedules:", scheduleError);
+            // Get members from the group_memberships table
+            const { data: memberData, error: memberError } = await db.from('group_memberships').select('user_id').eq('group_id', groupId);
+            if (memberError) {
+                console.error("Error fetching group members:", memberError);
                 return;
             }
-            const userIds = [...new Set(scheduleData.map(s => s.user_id))];
-
-            if (userIds.length === 0 && user) {
-                userIds.push(user.id);
-            }
+            const userIds = [...new Set(memberData.map(m => m.user_id))];
 
             if (userIds.length === 0) {
                  renderGroupMembers([]);
