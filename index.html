@@ -270,6 +270,27 @@
             }
         }
 
+        // This function creates an empty schedule for the user in the group if one doesn't exist.
+        // This effectively "registers" them as a member of the group immediately upon joining.
+        async function ensureUserIsInGroup(gId) {
+            if (!user) return;
+            const { data, error } = await db.from('schedules').select('user_id').eq('user_id', user.id).eq('group_id', gId).limit(1);
+
+            if (error) {
+                console.error("Error checking for existing schedule:", error);
+                return;
+            }
+
+            if (data.length === 0) {
+                const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
+                if (insertError) {
+                    console.error("Error creating initial schedule record:", insertError);
+                } else {
+                    console.log("User added to group with an empty schedule.");
+                }
+            }
+        }
+
         async function initializeApp(gId) {
             groupId = gId;
             
@@ -280,6 +301,7 @@
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
+            await ensureUserIsInGroup(gId);
             await loadUserSchedule();
             await fetchAllSchedules();
             await fetchGroupMembers();
@@ -306,7 +328,6 @@
                 }
                 
                 groupError.textContent = "Checking...";
-                // Check if group ID already exists in the new 'groups' table
                 const { data, error } = await db.from('groups').select('id').eq('id', inputId).limit(1);
 
                 if (error) {
@@ -318,7 +339,6 @@
                 if (data.length > 0) {
                     groupError.textContent = "Group ID already taken.";
                 } else {
-                    // If not taken, create it
                     const { error: insertError } = await db.from('groups').insert({ id: inputId, created_by: user.id });
                     if(insertError) {
                         console.error("Error creating group:", insertError);
@@ -555,8 +575,13 @@
             }
             const userIds = [...new Set(scheduleData.map(s => s.user_id))];
 
-            if (userIds.length === 0) {
+            if (userIds.length === 0 && user) {
                 userIds.push(user.id);
+            }
+
+            if (userIds.length === 0) {
+                 renderGroupMembers([]);
+                 return;
             }
 
             const { data: profiles, error: profileError } = await db.from('profiles').select('id, full_name').in('id', userIds);
@@ -594,7 +619,7 @@
                     listItem.appendChild(icon);
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = member.name;
-                    if (member.id === user.id) {
+                    if (user && member.id === user.id) {
                         nameSpan.textContent += " (You)";
                         nameSpan.className = "font-bold";
                     }
