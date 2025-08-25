@@ -120,7 +120,7 @@
         </div>
     </div>
 
-    <!-- Group Dashboard View -->
+    <!-- NEW: Group Dashboard View -->
     <div id="group-dashboard-view" class="modal-backdrop hidden">
         <div class="tech-card p-8 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
@@ -151,7 +151,7 @@
     <div id="app-container" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
         <header class="text-center mb-8">
             <h1 class="text-4xl md:text-5xl font-bold tech-header">FriendSync</h1>
-            <p class="text-lg text-gray-300 mt-2">Your universal schedule for all groups.</p>
+            <p class="text-lg text-gray-300 mt-2">Coordinate schedules with your friends effortlessly.</p>
             <div class="mt-4 space-y-2 md:space-y-0 md:space-x-4 inline-block">
                  <div id="groupInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg inline-block"></div>
                 <div id="userInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg inline-block"></div>
@@ -162,7 +162,7 @@
             <!-- Left Column: Your Schedule -->
             <div class="lg:col-span-2 tech-card p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">My Universal Schedule</h2>
+                    <h2 class="text-2xl font-bold">My Schedule</h2>
                     <div class="flex items-center">
                         <div class="relative flex items-center">
                             <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
@@ -171,19 +171,18 @@
                             <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
+                        <!-- NEW: Switch Group Button -->
                         <button id="switch-group-btn" class="ml-4 text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Switch Group</button>
+                        <button id="leave-group-btn" class="ml-2 text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
                     </div>
                 </div>
-                <p class="text-gray-400 mb-4 text-sm">This schedule applies to all groups you are in. Mark when you're busy.</p>
+                <p class="text-gray-400 mb-4 text-sm">Mark when you're busy. Click and drag to select multiple slots.</p>
                 <div id="timetable" class="overflow-x-auto rounded-lg"></div>
             </div>
 
             <!-- Right Column: Check Availability -->
             <div class="tech-card p-6">
-                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-2xl font-bold">Check Availability</h2>
-                    <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
-                </div>
+                <h2 class="text-2xl font-bold mb-4">Check Availability</h2>
                 <div class="space-y-4">
                     <div>
                         <label for="day-select" class="block text-sm font-medium text-gray-300">Day:</label>
@@ -226,8 +225,7 @@
         let user = null;
         let groupId = null; // Represents the currently selected group
         let userSchedule = [];
-        let allSchedules = {}; // Caches schedules of members in the current group
-        let currentGroupMembers = []; // Caches member IDs of the current group
+        let allSchedules = {};
         let realtimeChannel = null;
 
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -277,20 +275,11 @@
         async function handleAuthStateChange(event, session) {
             if (event === 'SIGNED_IN') {
                 user = session.user;
-
-                // Ensure user profile exists and has a schedule field
-                const { data, error } = await db.from('profiles').select('schedule').eq('id', user.id).single();
-                if (error && error.code !== 'PGRST116') { // Ignore "not found" error
-                     console.error("Error fetching profile:", error);
-                } else if (!data || data.schedule === null) {
-                    // If profile or schedule is missing, create/update it
-                    const { error: upsertError } = await db.from('profiles').upsert({
-                        id: user.id,
-                        full_name: user.user_metadata.full_name,
-                        schedule: [] // Initialize with empty schedule
-                    });
-                    if (upsertError) console.error("Error saving user profile:", upsertError);
-                }
+                const { error } = await db.from('profiles').upsert({
+                    id: user.id,
+                    full_name: user.user_metadata.full_name,
+                });
+                if (error) console.error("Error saving user profile:", error);
 
                 loginView.classList.add('hidden');
                 await showGroupDashboard();
@@ -341,13 +330,22 @@
             appContainer.classList.remove('hidden');
             
             const userName = user.user_metadata?.full_name || 'Unknown User';
-            groupInfoDiv.innerHTML = `Viewing Group: <span class="font-semibold font-mono">${groupId}</span>`;
+            groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
-            await loadUserSchedule(); // Load the single, universal schedule
-            await fetchAllSchedules(); // Fetch schedules for members of the selected group
+            const { data, error } = await db.from('schedules').select('user_id').match({ user_id: user.id, group_id: gId }).limit(1);
+
+            if (error) {
+                console.error("Error checking for schedule:", error);
+            } else if (data.length === 0) {
+                const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
+                if (insertError) console.error("Error creating initial schedule:", insertError);
+            }
+
+            await loadUserSchedule();
+            await fetchAllSchedules();
             await fetchGroupMembers();
-            listenToChanges();
+            listenToAllSchedules();
         }
 
         function setupGroupListeners() {
@@ -493,7 +491,7 @@
         }
 
         async function saveUserSchedule() {
-            if (!user) return;
+            if (!user || !groupId) return;
 
             saveScheduleBtn.disabled = true;
             saveScheduleBtn.textContent = 'Saving...';
@@ -501,9 +499,9 @@
 
             const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
+            userSchedule = newSchedule;
             
-            // Save the universal schedule to the user's profile
-            const { error } = await db.from('profiles').update({ schedule: newSchedule }).eq('id', user.id);
+            const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
             
             saveScheduleBtn.disabled = false;
             saveScheduleBtn.textContent = 'Save Schedule';
@@ -514,19 +512,17 @@
                 saveError.classList.remove('opacity-0');
                 setTimeout(() => saveError.classList.add('opacity-0'), 3000);
             } else {
-                console.log("Universal schedule saved!");
-                userSchedule = newSchedule; // Update local state
+                console.log("Schedule saved!");
                 saveFeedback.classList.remove('opacity-0');
                 setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
             }
         }
 
         async function loadUserSchedule() {
-            if (!user) return;
-            // Load the universal schedule from the user's profile
-            const { data, error } = await db.from('profiles').select('schedule').eq('id', user.id).single();
-            if (error) {
-                console.error("Error loading universal schedule: ", error);
+            if (!user || !groupId) return;
+            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).eq('group_id', groupId).single();
+            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is ok
+                console.error("Error loading schedule: ", error);
             }
             else if (data) {
                 userSchedule = data.schedule || [];
@@ -544,28 +540,13 @@
 
         async function fetchAllSchedules() {
              if (!groupId) return;
-             // 1. Get member IDs for the current group
-             const { data: members, error: memberError } = await db.from('group_memberships').select('user_id').eq('group_id', groupId);
-             if (memberError) {
-                 console.error("Error fetching members for schedule check:", memberError);
-                 return;
-             }
-             const memberIds = members.map(m => m.user_id);
-             currentGroupMembers = memberIds; // Cache for real-time listener
-
-             if(memberIds.length === 0) {
-                 allSchedules = {};
-                 return;
-             }
-
-             // 2. Fetch the universal schedules for those members from their profiles
-             const { data, error } = await db.from('profiles').select('id, schedule').in('id', memberIds);
+             const { data, error } = await db.from('schedules').select('user_id, schedule').eq('group_id', groupId);
              if (error) {
                 console.error("Error fetching all schedules:", error);
                 return;
              }
              allSchedules = {};
-             data.forEach(item => { allSchedules[item.id] = item.schedule || []; });
+             data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
              console.log("All schedules for group fetched.");
              
              const isShowingResults = freeFriendsList.querySelector('ul') || freeFriendsList.querySelector('div');
@@ -574,34 +555,19 @@
              }
         }
         
-        function listenToChanges() {
+        function listenToAllSchedules() {
             if (realtimeChannel) db.removeChannel(realtimeChannel);
             
-            const profileListener = db.channel('public:profiles')
-              .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, payload => {
-                // If a profile changes, check if they are in our current group
-                if (currentGroupMembers.includes(payload.new.id)) {
-                    console.log('A group member updated their schedule!', payload);
-                    fetchAllSchedules();
-                }
-              }).subscribe();
-
-            const membershipListener = db.channel(`public:group_memberships:group_id=eq.${groupId}`)
+            realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
+              .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
+                console.log('Change received for schedules!', payload);
+                fetchAllSchedules();
+              })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for members!', payload);
                 fetchGroupMembers();
-                fetchAllSchedules(); // Also refetch schedules as member list has changed
-              }).subscribe();
-            
-            // We need to manage both subscriptions
-            realtimeChannel = {
-                profile: profileListener,
-                membership: membershipListener,
-                unsubscribe: () => {
-                    db.removeChannel(profileListener);
-                    db.removeChannel(membershipListener);
-                }
-            };
+              })
+              .subscribe();
         }
 
         async function checkAvailability() {
