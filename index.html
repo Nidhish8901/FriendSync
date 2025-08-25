@@ -148,12 +148,15 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-bold">My Schedule</h2>
                     <div class="flex items-center">
-                        <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 relative">
-                            Save Schedule
-                            <span id="save-feedback" class="absolute right-[-1rem] top-1/2 -translate-y-1/2 text-green-400 opacity-0 transition-opacity">✓</span>
-                        </button>
-                        <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2">Leave Group</button>
-                        <button id="sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                        <div class="relative flex items-center">
+                            <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
+                                Save Schedule
+                            </button>
+                            <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
+                             <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
+                        </div>
+                        <button id="leave-group-btn" class="ml-4 text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
+                        <button id="sign-out-btn" class="ml-2 text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
                     </div>
                 </div>
                 <p class="text-gray-400 mb-4 text-sm">Mark when you're busy. Click and drag to select multiple slots.</p>
@@ -180,7 +183,7 @@
                         <p class="text-gray-400">Results will be displayed here.</p>
                     </div>
                 </div>
-                <!-- NEW: Group Members Section -->
+                <!-- Group Members Section -->
                 <div id="members-container" class="mt-6">
                     <h3 class="text-xl font-bold mb-2">Group Members</h3>
                     <div id="group-members-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
@@ -215,6 +218,7 @@
         const signOutBtn = document.getElementById('sign-out-btn');
         const saveScheduleBtn = document.getElementById('save-schedule-btn');
         const saveFeedback = document.getElementById('save-feedback');
+        const saveError = document.getElementById('save-error');
         const groupIdInput = document.getElementById('group-id-input');
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
@@ -359,7 +363,7 @@
                 if (isMouseDown && e.target.classList.contains('time-slot')) toggleSlot(e.target);
             });
             window.addEventListener('mouseup', () => {
-                if(isMouseDown) { isMouseDown = false; } // Removed automatic save
+                if(isMouseDown) { isMouseDown = false; } 
             });
             checkBtn.addEventListener('click', checkAvailability);
         }
@@ -374,6 +378,7 @@
 
             saveScheduleBtn.disabled = true;
             saveScheduleBtn.textContent = 'Saving...';
+            saveError.classList.add('opacity-0');
 
             const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
@@ -386,7 +391,11 @@
 
             if (error) {
                 console.error("Error saving schedule: ", error);
-                alert("Could not save schedule. See console for details.");
+                saveError.textContent = 'Save Failed!';
+                saveError.classList.remove('opacity-0');
+                setTimeout(() => {
+                    saveError.classList.add('opacity-0');
+                }, 3000);
             } else {
                 console.log("Schedule saved!");
                 saveFeedback.classList.remove('opacity-0');
@@ -437,7 +446,7 @@
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for my group!', payload);
                 fetchAllSchedules();
-                fetchGroupMembers(); // Refresh group members when a change occurs
+                fetchGroupMembers();
               })
               .subscribe();
         }
@@ -456,7 +465,7 @@
                 const { data: profiles, error } = await db.from('profiles').select('id, full_name').in('id', freeFriendIds);
                 if (error) {
                     console.error("Error fetching profiles:", error);
-                    renderFreeFriends([]); // Render empty on error
+                    renderFreeFriends([]);
                     return;
                 }
                 const profileMap = new Map(profiles.map(p => [p.id, p.full_name]));
@@ -496,7 +505,6 @@
 
         async function fetchGroupMembers() {
             if (!groupId) return;
-            // 1. Get all unique user IDs from the schedules table for the current group
             const { data: scheduleData, error: scheduleError } = await db.from('schedules').select('user_id').eq('group_id', groupId);
             if (scheduleError) {
                 console.error("Error fetching group members' schedules:", scheduleError);
@@ -509,7 +517,6 @@
                 return;
             }
 
-            // 2. Get the profiles for those user IDs
             const { data: profiles, error: profileError } = await db.from('profiles').select('id, full_name').in('id', userIds);
             if (profileError) {
                 console.error("Error fetching group members' profiles:", profileError);
