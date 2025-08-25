@@ -519,7 +519,10 @@
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
              console.log("All schedules for group fetched.");
-             if(freeFriendsList.innerHTML !== '' && !freeFriendsList.querySelector('p')) checkAvailability();
+             // Re-run the check if results are already displayed
+             if(document.getElementById('results-container').offsetParent !== null) {
+                checkAvailability();
+             }
         }
         
         function listenToAllSchedules() {
@@ -528,6 +531,7 @@
             realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for schedules!', payload);
+                // FIX: When a change is detected, re-fetch all schedules to update the local state
                 fetchAllSchedules();
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
