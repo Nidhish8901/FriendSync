@@ -10,7 +10,7 @@ FriendSync is a real-time, responsive web application designed to help users eff
 
 You can launch the live application here:
 
-**[FRIENDSYNC APPLICATION](https://friendsync123.netlify.app/)**
+**[LAUNCH FRIENDSYNC](https://friendsync123.netlify.app/)**
 
 ---
 
