@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Import Supabase client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Import iCal Parser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ical.js/1.5.0/ical.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Roboto+Mono&display=swap" rel="stylesheet">
@@ -160,22 +162,33 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Your Schedule -->
-            <div class="lg:col-span-2 tech-card p-6">
+            <div class="lg-col-span-2 tech-card p-6">
                 <div class="flex justify-between items-center mb-4 flex-wrap">
-                    <h2 class="text-2xl font-bold mb-2 md:mb-0">My Schedule</h2>
+                    <h2 class="text-2xl font-bold mb-2 md:mb-0">My Global Schedule</h2>
                     <div class="flex items-center flex-wrap">
                         <div class="relative flex items-center mr-2 mb-2 md:mb-0">
                             <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
                                 Save
                             </button>
-                            <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
+                             <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
+                        <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 mb-2 md:mb-0">Download ICS</button>
                         <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 mb-2 md:mb-0">Switch Group</button>
                         <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mb-2 md:mb-0">Leave Group</button>
                     </div>
                 </div>
-                <p class="text-gray-400 mb-4 text-sm">Mark when you're busy. Click and drag to select multiple slots.</p>
+                
+                <div class="border-t border-b border-gray-700 my-4 py-4">
+                    <p class="text-gray-400 mb-2 text-sm">Quickly import your schedule by uploading an ICS file.</p>
+                    <div class="flex items-center space-x-2">
+                        <input type="file" id="ics-upload-input" accept=".ics" class="block w-full text-sm text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"/>
+                        <button id="upload-ics-btn" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Upload & Preview</button>
+                    </div>
+                     <p class="text-xs text-gray-500 mt-2">Need to create an ICS file from your timetable? Use this tool: <a href="https://chrono2ics.vercel.app/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Chrono2ICS</a></p>
+                </div>
+
+                <p class="text-gray-400 mb-4 text-sm">Or, set your availability manually. It will apply to all your groups.</p>
                 <div id="timetable" class="overflow-x-auto rounded-lg"></div>
             </div>
 
@@ -223,7 +236,7 @@
 
         let user = null;
         let groupId = null; // Represents the currently selected group
-        let userSchedule = [];
+        let userSchedule = []; // This now represents the single, global schedule
         let allSchedules = {};
         let realtimeChannel = null;
 
@@ -243,6 +256,9 @@
         const createGroupBtn = document.getElementById('create-group-btn');
         const leaveGroupBtn = document.getElementById('leave-group-btn');
         const switchGroupBtn = document.getElementById('switch-group-btn');
+        const downloadIcsBtn = document.getElementById('download-ics-btn');
+        const uploadIcsBtn = document.getElementById('upload-ics-btn');
+        const icsUploadInput = document.getElementById('ics-upload-input');
         const inviteBtn = document.getElementById('invite-btn');
         const groupError = document.getElementById('group-error');
         const timetableDiv = document.getElementById('timetable');
@@ -336,14 +352,12 @@
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
-            const { data, error } = await db.from('schedules').select('user_id').match({ user_id: user.id, group_id: gId }).limit(1);
+            const { data: anySchedule, error: fetchError } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
+            if (fetchError) console.error("Error fetching master schedule:", fetchError);
 
-            if (error) {
-                console.error("Error checking for schedule:", error);
-            } else if (data.length === 0) {
-                const { error: insertError } = await db.from('schedules').insert({ user_id: user.id, group_id: gId, schedule: [] });
-                if (insertError) console.error("Error creating initial schedule:", insertError);
-            }
+            const scheduleToApply = (anySchedule && anySchedule.length > 0) ? anySchedule[0].schedule : [];
+            const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: gId, schedule: scheduleToApply });
+            if (upsertError) console.error("Error applying schedule to new group:", upsertError);
 
             await loadUserSchedule();
             await fetchAllSchedules();
@@ -425,7 +439,8 @@
             };
 
             leaveGroupBtn.onclick = async () => {
-                if (!confirm(`Are you sure you want to leave the group "${groupId}"?`)) return;
+                const confirmation = window.prompt(`Type "${groupId}" to confirm you want to leave this group.`);
+                if (confirmation !== groupId) return;
 
                 if (user && groupId) {
                     await db.from('group_memberships').delete().match({ user_id: user.id, group_id: groupId });
@@ -471,6 +486,8 @@
             googleLoginBtn.addEventListener('click', handleGoogleLogin);
             dashboardSignOutBtn.addEventListener('click', handleSignOut);
             saveScheduleBtn.addEventListener('click', saveUserSchedule);
+            downloadIcsBtn.addEventListener('click', downloadIcsFile);
+            uploadIcsBtn.addEventListener('click', handleIcsUpload);
 
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
@@ -495,7 +512,7 @@
         }
 
         async function saveUserSchedule() {
-            if (!user || !groupId) return;
+            if (!user) return;
 
             saveScheduleBtn.disabled = true;
             saveScheduleBtn.textContent = 'Saving...';
@@ -503,33 +520,54 @@
 
             const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
                                     .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
-            userSchedule = newSchedule;
             
-            const { error } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: userSchedule });
-            
-            saveScheduleBtn.disabled = false;
-            saveScheduleBtn.textContent = 'Save Schedule';
+            const { data: memberships, error: memberError } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
 
-            if (error) {
-                console.error("Error saving schedule: ", error);
-                saveError.textContent = 'Save Failed!';
+            if (memberError) {
+                console.error("Error fetching user's groups:", memberError);
+                saveError.textContent = 'Error!';
                 saveError.classList.remove('opacity-0');
-                setTimeout(() => saveError.classList.add('opacity-0'), 3000);
-            } else {
-                console.log("Schedule saved!");
+                saveScheduleBtn.disabled = false;
+                saveScheduleBtn.textContent = 'Save Schedule';
+                return;
+            }
+
+            if (memberships.length > 0) {
+                const upsertData = memberships.map(m => ({
+                    user_id: user.id,
+                    group_id: m.group_id,
+                    schedule: newSchedule
+                }));
+                const { error: upsertError } = await db.from('schedules').upsert(upsertData);
+                 if (upsertError) {
+                    console.error("Error saving global schedule: ", upsertError);
+                    saveError.textContent = 'Save Failed!';
+                    saveError.classList.remove('opacity-0');
+                 } else {
+                    userSchedule = newSchedule;
+                    console.log("Global schedule saved!");
+                    saveFeedback.classList.remove('opacity-0');
+                    setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
+                 }
+            } else { // Handle case where user is in no groups yet
+                userSchedule = newSchedule;
+                console.log("Schedule updated locally. Will sync on joining a group.");
                 saveFeedback.classList.remove('opacity-0');
                 setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
             }
+            
+            saveScheduleBtn.disabled = false;
+            saveScheduleBtn.textContent = 'Save Schedule';
         }
 
         async function loadUserSchedule() {
-            if (!user || !groupId) return;
-            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).eq('group_id', groupId).single();
-            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found, which is ok
-                console.error("Error loading schedule: ", error);
+            if (!user) return;
+            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
+            if (error) {
+                console.error("Error loading global schedule: ", error);
             }
-            else if (data) {
-                userSchedule = data.schedule || [];
+            else if (data && data.length > 0) {
+                userSchedule = data[0].schedule || [];
                 updateTimetableUI();
             }
         }
@@ -551,7 +589,6 @@
              }
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
-             console.log("All schedules for group fetched.");
              
              const isShowingResults = freeFriendsList.querySelector('ul') || freeFriendsList.querySelector('div');
              if (isShowingResults) {
@@ -606,7 +643,8 @@
             freeFriendsList.innerHTML = '';
             const header = document.createElement('p');
             header.className = 'text-gray-300 mb-3';
-            header.textContent = `At ${time} on ${day}:`;
+            const selectedTimeLabel = timeSelect.options[timeSelect.selectedIndex].text;
+            header.textContent = `At ${selectedTimeLabel} on ${day}:`;
             freeFriendsList.appendChild(header);
             if (freeFriends.length === 0) {
                 const noOneFree = document.createElement('div');
@@ -686,6 +724,129 @@
             }
         }
 
+        // --- ICS File Generation & Parsing ---
+        function toIcsFormat(date) {
+            const pad = (num) => num.toString().padStart(2, '0');
+            return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+        }
+
+        function getNextDayOfWeek(dayName, hour) {
+            const dayMap = {"Sunday":0, "Monday":1, "Tuesday":2, "Wednesday":3, "Thursday":4, "Friday":5, "Saturday":6};
+            const targetDayIndex = dayMap[dayName];
+            const today = new Date();
+            const todayIndex = today.getDay();
+            let daysToAdd = targetDayIndex - todayIndex;
+            if (daysToAdd <= 0) {
+                daysToAdd += 7;
+            }
+            const nextDate = new Date();
+            nextDate.setDate(today.getDate() + daysToAdd);
+            nextDate.setHours(hour, 0, 0, 0);
+            return nextDate;
+        }
+
+        function downloadIcsFile() {
+            if (!user || userSchedule.length === 0) {
+                saveError.textContent = 'Save a schedule first!';
+                saveError.classList.remove('opacity-0');
+                setTimeout(() => saveError.classList.add('opacity-0'), 3000);
+                return;
+            }
+
+            let icsString = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//FriendSync//Schedule v1.0//EN',
+            ].join('\r\n');
+
+            const dayToRRULE = { "Sunday": "SU", "Monday": "MO", "Tuesday": "TU", "Wednesday": "WE", "Thursday": "TH", "Friday": "FR", "Saturday": "SA" };
+
+            userSchedule.forEach(slot => {
+                const startHour = parseInt(slot.time.split(':')[0]);
+                const startDate = getNextDayOfWeek(slot.day, startHour);
+                const endDate = new Date(startDate.getTime());
+                endDate.setMinutes(endDate.getMinutes() + 50);
+
+                const event = [
+                    'BEGIN:VEVENT',
+                    `UID:${user.id}-${slot.day}-${slot.time}@friendsync.app`,
+                    `DTSTAMP:${toIcsFormat(new Date()).slice(0, 15)}Z`,
+                    `DTSTART:${toIcsFormat(startDate)}`,
+                    `DTEND:${toIcsFormat(endDate)}`,
+                    `RRULE:FREQ=WEEKLY;BYDAY=${dayToRRULE[slot.day]}`,
+                    'SUMMARY:Busy (FriendSync)',
+                    'END:VEVENT'
+                ].join('\r\n');
+                
+                icsString += '\r\n' + event;
+            });
+
+            icsString += '\r\nEND:VCALENDAR';
+
+            const blob = new Blob([icsString], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'schedule.ics';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function handleIcsUpload() {
+            const file = icsUploadInput.files[0];
+            if (!file) {
+                saveError.textContent = 'Please select a file!';
+                saveError.classList.remove('opacity-0');
+                setTimeout(() => saveError.classList.add('opacity-0'), 3000);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const jcalData = ICAL.parse(e.target.result);
+                    const vcalendar = new ICAL.Component(jcalData);
+                    const vevents = vcalendar.getAllSubcomponents('vevent');
+                    
+                    const newSchedule = [];
+                    const rruleToDay = { "SU": "Sunday", "MO": "Monday", "TU": "Tuesday", "WE": "Wednesday", "TH": "Thursday", "FR": "Friday", "SA": "Saturday" };
+
+                    vevents.forEach(vevent => {
+                        const event = new ICAL.Event(vevent);
+                        if (event.isRecurring()) {
+                            const rrule = event.rrule;
+                            const byday = rrule.parts.BYDAY;
+                            if (byday) {
+                                const day = rruleToDay[byday[0]];
+                                const hour = event.startDate.hour;
+                                if (day && hour >= startTime && hour < endTime) {
+                                    const time = `${String(hour).padStart(2, '0')}:00`;
+                                    newSchedule.push({ day, time });
+                                }
+                            }
+                        }
+                    });
+                    
+                    userSchedule = newSchedule;
+                    updateTimetableUI();
+                    
+                    saveFeedback.textContent = 'Preview loaded. Click Save!';
+                    saveFeedback.classList.remove('opacity-0');
+                    setTimeout(() => {
+                        saveFeedback.classList.add('opacity-0');
+                        saveFeedback.textContent = '✓';
+                    }, 3000);
+
+                } catch (err) {
+                    console.error("Error parsing ICS file:", err);
+                    saveError.textContent = 'Invalid ICS file!';
+                    saveError.classList.remove('opacity-0');
+                    setTimeout(() => saveError.classList.add('opacity-0'), 3000);
+                }
+            };
+            reader.readAsText(file);
+        }
+
         // --- Initial Load ---
         generateTimetable();
         populateSelectors();
@@ -696,3 +857,4 @@
     </script>
 </body>
 </html>
+
