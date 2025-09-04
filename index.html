@@ -229,7 +229,7 @@
     <!-- Supabase and App Logic -->
     <script type="module">
         const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInRypeCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -808,26 +808,32 @@
                     const vcalendar = new ICAL.Component(jcalData);
                     const vevents = vcalendar.getAllSubcomponents('vevent');
                     
-                    const newSchedule = [];
-                    const rruleToDay = { "SU": "Sunday", "MO": "Monday", "TU": "Tuesday", "WE": "Wednesday", "TH": "Thursday", "FR": "Friday", "SA": "Saturday" };
+                    const newSchedule = new Set(); // Use a Set to avoid duplicates
+                    const dayMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
                     vevents.forEach(vevent => {
                         const event = new ICAL.Event(vevent);
-                        if (event.isRecurring()) {
-                            const rrule = event.rrule;
-                            const byday = rrule.parts.BYDAY;
-                            if (byday) {
-                                const day = rruleToDay[byday[0]];
-                                const hour = event.startDate.hour;
-                                if (day && hour >= startTime && hour < endTime) {
-                                    const time = `${String(hour).padStart(2, '0')}:00`;
-                                    newSchedule.push({ day, time });
-                                }
-                            }
+                        
+                        // Get the day from the start date of the event
+                        const jsDate = event.startDate.toJSDate();
+                        const day = dayMap[jsDate.getDay()];
+                        
+                        // Get the hour
+                        const hour = event.startDate.hour;
+
+                        if (day && hour >= startTime && hour < endTime) {
+                            const time = `${String(hour).padStart(2, '0')}:00`;
+                            // Add a unique string to the set to prevent duplicate time slots
+                            newSchedule.add(`${day}|${time}`);
                         }
                     });
                     
-                    userSchedule = newSchedule;
+                    // Convert the set of unique strings back to an array of objects
+                    userSchedule = Array.from(newSchedule).map(item => {
+                        const [day, time] = item.split('|');
+                        return { day, time };
+                    });
+                    
                     updateTimetableUI();
                     
                     saveFeedback.textContent = 'Preview loaded. Click Save!';
