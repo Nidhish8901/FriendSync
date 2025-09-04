@@ -551,6 +551,7 @@
 
         async function initializeApp(gId) {
             groupId = gId;
+            showView('app-container');
             loadingOverlay.classList.remove('hidden');
             
             groupMembersList.innerHTML = '<p class="text-gray-400">Loading members...</p>';
@@ -562,17 +563,15 @@
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
             try {
-                // Fetch data sequentially to avoid race conditions and improve stability
-                await loadUserScheduleAndApplyToGroup();
-                await fetchAllSchedules();
-                await fetchGroupMembers();
-                
+                await Promise.all([
+                    loadUserScheduleAndApplyToGroup(),
+                    fetchAllSchedules(),
+                    fetchGroupMembers()
+                ]);
                 listenToAllSchedules();
-                showView('app-container');
             } catch (error) {
                 console.error("Error initializing app view:", error);
-                groupError.textContent = "Error loading group data.";
-                await showGroupDashboard();
+                groupMembersList.innerHTML = '<p class="text-red-400">Error loading group data.</p>';
             } finally {
                 loadingOverlay.classList.add('hidden');
             }
