@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Pacifico&family=Roboto+Mono&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Inter', sans-serif;
             background-color: #111827; /* Gray-900 */
             color: #E5E7EB; /* Gray-200 */
             background-image: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 30%),
@@ -517,38 +517,41 @@
             renderUserGroups(data.map(g => g.group_id));
         }
 
+        // OPTIMIZATION: Use a single innerHTML call and event delegation for faster rendering and setup.
         function renderUserGroups(groups) {
-            userGroupsList.innerHTML = '';
             if (groups.length === 0) {
                 userGroupsList.innerHTML = '<p class="text-center text-gray-400">You are not in any groups yet.</p>';
                 return;
             }
-            groups.forEach(gId => {
-                const groupItem = document.createElement('div');
-                groupItem.className = 'group-list-item rounded-lg flex items-center justify-between p-3';
 
-                const groupName = document.createElement('span');
-                groupName.className = 'font-mono cursor-pointer flex-grow';
-                groupName.textContent = gId;
-                groupName.onclick = () => initializeApp(gId);
+            const groupsHtml = groups.map(gId => `
+                <div class="group-list-item rounded-lg flex items-center justify-between p-3" data-group-id="${gId}">
+                    <span class="font-mono cursor-pointer flex-grow view-group">${gId}</span>
+                    <button class="text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 rounded-md transition-colors flex-shrink-0 leave-group">Leave</button>
+                </div>
+            `).join('');
 
-                const leaveButton = document.createElement('button');
-                leaveButton.className = 'text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 rounded-md transition-colors flex-shrink-0';
-                leaveButton.textContent = 'Leave';
-                leaveButton.onclick = async () => {
-                    const confirmation = window.prompt(`Type "${gId}" to confirm you want to leave this group.`);
-                    if (confirmation !== gId) return;
+            userGroupsList.innerHTML = groupsHtml;
+        }
 
-                    if (user && gId) {
-                        await db.from('group_memberships').delete().match({ user_id: user.id, group_id: gId });
-                    }
-                    await showGroupDashboard();
-                };
+        async function handleUserGroupClick(event) {
+            const target = event.target;
+            const groupItem = target.closest('.group-list-item');
+            if (!groupItem) return;
 
-                groupItem.appendChild(groupName);
-                groupItem.appendChild(leaveButton);
-                userGroupsList.appendChild(groupItem);
-            });
+            const gId = groupItem.dataset.groupId;
+
+            if (target.classList.contains('view-group')) {
+                initializeApp(gId);
+            } else if (target.classList.contains('leave-group')) {
+                const confirmation = window.prompt(`Type "${gId}" to confirm you want to leave this group.`);
+                if (confirmation !== gId) return;
+
+                if (user && gId) {
+                    await db.from('group_memberships').delete().match({ user_id: user.id, group_id: gId });
+                }
+                await showGroupDashboard();
+            }
         }
 
         async function initializeApp(gId) {
@@ -565,6 +568,7 @@
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
             try {
+                // OPTIMIZATION: Using Promise.all to fetch data concurrently.
                 await Promise.all([
                     loadUserScheduleAndApplyToGroup(),
                     fetchAllSchedules(),
@@ -578,8 +582,10 @@
                 loadingOverlay.classList.add('hidden');
             }
         }
-
+        
+        // This function ensures the user's single "global" schedule is present in the database for the newly selected group.
         async function loadUserScheduleAndApplyToGroup() {
+            // Fetch any existing schedule for this user, as it's global.
             const { data: anySchedule, error: fetchError } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
             if (fetchError) {
                 console.error("Error fetching master schedule:", fetchError);
@@ -590,6 +596,7 @@
             userSchedule = scheduleToApply;
             updateTimetableUI();
 
+            // Now, ensure this schedule is associated with the current group for this user.
             const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: scheduleToApply });
             if (upsertError) {
                 console.error("Error applying schedule to new group:", upsertError);
@@ -726,6 +733,8 @@
             howToBtn.addEventListener('click', () => showView('how-to-view'));
             closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
 
+            userGroupsList.addEventListener('click', handleUserGroupClick);
+
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
                     e.preventDefault();
@@ -740,7 +749,7 @@
             window.addEventListener('mouseup', () => {
                 if(isMouseDown) { isMouseDown = false; } 
             });
-            checkBtn.addEventListener('click', checkAvailability);
+            checkBtn.addEventListener('click', handleCheckAvailability);
             checkFriendBtn.addEventListener('click', checkCommonAvailability);
         }
 
@@ -787,11 +796,13 @@
             }
         }
 
+        // This function saves the user's schedule to all groups they are a member of.
         async function saveScheduleToDatabase(schedule) {
             if (!user) return false;
 
             userSchedule = schedule;
 
+            // First, get a list of all groups the user belongs to.
             const { data: memberships, error: memberError } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
 
             if (memberError) {
@@ -799,6 +810,7 @@
                 return false;
             }
 
+            // Prepare a bulk upsert operation. This is more efficient than saving one by one.
             if (memberships.length > 0) {
                 const upsertData = memberships.map(m => ({
                     user_id: user.id,
@@ -858,26 +870,54 @@
              }
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
-             
-             const isShowingResults = freeFriendsList.querySelector('ul') || freeFriendsList.querySelector('div');
-             if (isShowingResults) {
-                checkAvailability();
-             }
         }
         
+        // OPTIMIZATION: Handle realtime updates efficiently without refetching all data.
         function listenToAllSchedules() {
             if (realtimeChannel) db.removeChannel(realtimeChannel);
             
-            realtimeChannel = db.channel(`public:schedules:group_id=eq.${groupId}`)
+            realtimeChannel = db.channel(`group-updates:${groupId}`)
               .on('postgres_changes', { event: '*', schema: 'public', table: 'schedules', filter: `group_id=eq.${groupId}` }, payload => {
-                console.log('Change received for schedules!', payload);
-                fetchAllSchedules();
+                console.log('Schedule change received:', payload);
+                const record = payload.new || payload.old;
+                if (!record || !record.user_id) return;
+
+                // Update local state directly instead of refetching everything
+                if (payload.eventType === 'DELETE') {
+                    delete allSchedules[record.user_id];
+                } else {
+                    allSchedules[record.user_id] = record.schedule || [];
+                }
+                
+                // If availability results are showing, refresh them with the new data
+                if (freeFriendsList.querySelector('ul, div')) {
+                    checkAvailability();
+                }
+                if (friendFreeTimesList.querySelector('ul, div')) {
+                    checkCommonAvailability();
+                }
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for members!', payload);
+                // Membership changes are less frequent and require fetching profile data, so refetching is acceptable.
                 fetchGroupMembers();
               })
               .subscribe();
+        }
+        
+        // OPTIMIZATION: Add loading state for better UX during async profile fetch.
+        async function handleCheckAvailability() {
+            checkBtn.disabled = true;
+            checkBtn.textContent = 'Checking...';
+            try {
+                await checkAvailability();
+            } catch (e) {
+                console.error("Failed to check availability:", e);
+                freeFriendsList.innerHTML = '<p class="text-red-400 font-mono">Error checking availability.</p>';
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = "Check Who's Free";
+            }
         }
 
         async function checkAvailability() {
@@ -891,6 +931,7 @@
                 .filter(friendId => !allSchedules[friendId].some(slot => slot.day === selectedDay && slot.time === selectedTime));
 
             if (freeFriendIds.length > 0) {
+                // This is the async part - fetching names for the user IDs.
                 const { data: profiles, error } = await db.from('profiles').select('id, full_name').in('id', freeFriendIds);
                 if (error) {
                     console.error("Error fetching profiles:", error);
@@ -1204,4 +1245,3 @@
     </script>
 </body>
 </html>
-
