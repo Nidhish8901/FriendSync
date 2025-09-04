@@ -71,9 +71,3 @@ set their availability, and instantly see when everyone is free.
 5.  **Check Schedules**: Use the tools on the right to check who is free
     at a specific time or find common free slots for multiple friends.
 
-## About the Creator
-
-This project was created by **NIDHISH CHAKRADHAR REDDY**.\
-For feedback, questions, or bug reports, please feel free to reach out
-at:\
-📧 f20230937@hyderabad.bits-pilani.ac.in
