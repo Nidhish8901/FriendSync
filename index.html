@@ -144,9 +144,9 @@
     <div id="group-dashboard-view" class="modal-backdrop hidden">
         <div class="tech-card p-6 sm:p-8 w-full max-w-lg mx-4">
             <h2 class="text-3xl text-center font-bold mb-4 tech-header font-script">FriendSync</h2>
-            <div class="flex justify-between items-center mb-6 border-t border-gray-700 pt-4">
-                 <h3 class="text-2xl font-bold tech-header">Your Groups</h3>
-                 <div class="flex items-center space-x-2">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-t border-gray-700 pt-4">
+                 <h3 class="text-2xl font-bold tech-header text-center sm:text-left">Your Groups</h3>
+                 <div class="flex items-center space-x-2 flex-wrap justify-center">
                      <button id="how-to-btn" class="inline-flex items-center text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -261,9 +261,9 @@
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-5xl font-bold tech-header font-script">FriendSync</h1>
             <p class="text-md md:text-lg text-gray-300 mt-2">Coordinate schedules with your friends effortlessly.</p>
-            <div class="mt-4 space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
-                 <div id="groupInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
-                <div id="userInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
+            <div class="mt-4 w-full max-w-md mx-auto space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
+                 <div id="groupInfo" class="w-full text-center p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
+                <div id="userInfo" class="w-full text-center p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
             </div>
         </header>
 
