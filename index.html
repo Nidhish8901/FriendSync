@@ -133,7 +133,7 @@
 
     <!-- Group Dashboard View -->
     <div id="group-dashboard-view" class="modal-backdrop hidden">
-        <div class="tech-card p-8 w-full max-w-md">
+        <div class="tech-card p-8 w-full max-w-lg">
             <div class="flex justify-between items-center mb-6">
                  <h2 class="text-2xl font-bold tech-header">Your Groups</h2>
                  <div class="flex items-center space-x-2">
@@ -147,9 +147,21 @@
                  </div>
             </div>
            
-            <div id="user-groups-list" class="space-y-3 max-h-60 overflow-y-auto mb-6 pr-2">
+            <div id="user-groups-list" class="space-y-3 max-h-48 overflow-y-auto mb-6 pr-2">
                 <!-- User groups will be dynamically inserted here -->
             </div>
+
+            <!-- How to use section -->
+            <div class="my-6 p-4 border border-dashed border-gray-600 rounded-lg bg-gray-900/20">
+                 <h3 class="text-lg font-bold text-center mb-3 text-gray-200">How to Get Started</h3>
+                 <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                     <li><strong>Create or Join a Group:</strong> Use the form below. Share the unique Group ID with your friends so they can join!</li>
+                     <li><strong>Select a Group:</strong> Click on any group from your list above to open its shared schedule view.</li>
+                     <li><strong>Set Your Schedule:</strong> Once in a group, upload an ICS file or click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</li>
+                     <li><strong>Find a Time:</strong> Use the "Check Availability" tool to instantly see when everyone in the group is free to connect.</li>
+                 </ol>
+            </div>
+
 
             <div class="border-t border-gray-700 pt-6">
                  <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
@@ -981,3 +993,4 @@
     </script>
 </body>
 </html>
+
