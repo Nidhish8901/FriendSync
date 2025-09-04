@@ -428,13 +428,39 @@
             if (error) console.error('Error logging in with Google:', error);
         }
 
-        async function handleSignOut() {
-            await db.auth.signOut();
+        function resetAppState() {
+            // 1. Reset state variables
+            user = null;
+            groupId = null;
+            userSchedule = [];
+            allSchedules = {};
+
+            // 2. Disconnect from realtime channel
             if (realtimeChannel) {
                 db.removeChannel(realtimeChannel);
                 realtimeChannel = null;
             }
-            window.location.reload();
+
+            // 3. Clear UI elements
+            userGroupsList.innerHTML = '';
+            groupMembersList.innerHTML = '<p class="text-gray-400">Loading members...</p>';
+            freeFriendsList.innerHTML = '<p class="text-gray-400">Results will be displayed here.</p>';
+            friendFreeTimesList.innerHTML = '<p class="text-gray-400">Select friends and a day to see their common free slots.</p>';
+            groupIdInput.value = '';
+            groupError.textContent = '';
+
+
+            // 4. Switch views
+            appContainer.classList.add('hidden');
+            groupDashboardView.classList.add('hidden');
+            aboutView.classList.add('hidden');
+            howToView.classList.add('hidden');
+            loginView.classList.remove('hidden');
+        }
+
+        async function handleSignOut() {
+            await db.auth.signOut();
+            resetAppState();
         }
         
         async function handleAuthStateChange(event, session) {
@@ -452,12 +478,7 @@
                 await showGroupDashboard();
 
             } else if (event === 'SIGNED_OUT') {
-                user = null;
-                appContainer.classList.add('hidden');
-                groupDashboardView.classList.add('hidden');
-                aboutView.classList.add('hidden');
-                howToView.classList.add('hidden');
-                loginView.classList.remove('hidden');
+                resetAppState();
             }
         }
 
