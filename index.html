@@ -404,7 +404,7 @@
         
         async function handleAuthStateChange(event, session) {
             loadingView.classList.add('hidden');
-            if (event === 'SIGNED_IN') {
+            if (session) {
                 user = session.user;
                 const { error } = await db.from('profiles').upsert({
                     id: user.id,
@@ -416,7 +416,7 @@
                 aboutView.classList.add('hidden');
                 await showGroupDashboard();
 
-            } else if (event === 'SIGNED_OUT') {
+            } else {
                 user = null;
                 appContainer.classList.add('hidden');
                 groupDashboardView.classList.add('hidden');
