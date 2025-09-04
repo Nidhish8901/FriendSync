@@ -128,9 +128,6 @@
             height: 40px;
             animation: spin 1s linear infinite;
         }
-        #how-to-chevron {
-            transition: transform 0.3s ease;
-        }
     </style>
 </head>
 <body>
@@ -172,33 +169,14 @@
             </div>
 
             <!-- How to use section -->
-             <div class="my-6">
-                <div id="how-to-toggle" class="p-3 bg-gray-800/50 border border-gray-600 rounded-lg cursor-pointer flex justify-between items-center hover:bg-gray-700/50 transition-colors">
-                    <h3 class="text-lg font-bold text-gray-200">🚀 How to Get Started</h3>
-                    <svg id="how-to-chevron" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
-                <div id="how-to-content" class="hidden mt-2 p-4 border border-t-0 border-gray-600 rounded-b-lg bg-gray-900/20">
-                     <ol class="list-decimal list-inside space-y-3 text-sm text-gray-300">
-                         <li>
-                             <strong class="font-semibold text-white">Create or Join a Group:</strong>
-                             <p class="pl-2 text-xs">Use the form below. Share the unique Group ID with your friends so they can join!</p>
-                         </li>
-                         <li>
-                             <strong class="font-semibold text-white">Select a Group:</strong>
-                             <p class="pl-2 text-xs">Click on any group from your list above to open its shared schedule view.</p>
-                         </li>
-                         <li>
-                             <strong class="font-semibold text-white">Set Your Schedule:</strong>
-                             <p class="pl-2 text-xs">Once in a group, upload an ICS file or click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</p>
-                         </li>
-                         <li>
-                             <strong class="font-semibold text-white">Find a Time:</strong>
-                             <p class="pl-2 text-xs">Use the "Check Availability" tool to instantly see when everyone in the group is free to connect.</p>
-                         </li>
-                     </ol>
-                </div>
+            <div class="my-6 p-4 border border-dashed border-gray-600 rounded-lg bg-gray-900/20">
+                 <h3 class="text-lg font-bold text-center mb-3 text-gray-200">How to Get Started</h3>
+                 <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
+                     <li><strong>Create or Join a Group:</strong> Use the form below. Share the unique Group ID with your friends so they can join!</li>
+                     <li><strong>Select a Group:</strong> Click on any group from your list above to open its shared schedule view.</li>
+                     <li><strong>Set Your Schedule:</strong> Once in a group, upload an ICS file or click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</li>
+                     <li><strong>Find a Time:</strong> Use the "Check Availability" tool to instantly see when everyone in the group is free to connect.</li>
+                 </ol>
             </div>
 
 
@@ -382,9 +360,6 @@
         const userGroupsList = document.getElementById('user-groups-list');
         const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
-        const howToToggle = document.getElementById('how-to-toggle');
-        const howToContent = document.getElementById('how-to-content');
-        const howToChevron = document.getElementById('how-to-chevron');
 
         let isMouseDown = false, isSelecting = false;
 
@@ -404,7 +379,7 @@
         
         async function handleAuthStateChange(event, session) {
             loadingView.classList.add('hidden');
-            if (session) {
+            if (event === 'SIGNED_IN') {
                 user = session.user;
                 const { error } = await db.from('profiles').upsert({
                     id: user.id,
@@ -416,7 +391,7 @@
                 aboutView.classList.add('hidden');
                 await showGroupDashboard();
 
-            } else {
+            } else if (event === 'SIGNED_OUT') {
                 user = null;
                 appContainer.classList.add('hidden');
                 groupDashboardView.classList.add('hidden');
@@ -610,10 +585,6 @@
             inviteBtn.addEventListener('click', handleInvite);
             aboutBtn.addEventListener('click', () => aboutView.classList.remove('hidden'));
             closeAboutBtn.addEventListener('click', () => aboutView.classList.add('hidden'));
-            howToToggle.addEventListener('click', () => {
-                howToContent.classList.toggle('hidden');
-                howToChevron.classList.toggle('rotate-180');
-            });
 
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
