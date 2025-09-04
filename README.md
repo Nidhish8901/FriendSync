@@ -1,5 +1,7 @@
 # FriendSync - Coordinate Schedules with Friends
 
+🚀 **Live Demo**: [https://friendsync123.netlify.app/](https://friendsync123.netlify.app/)
+
 FriendSync is a real-time web application designed to make scheduling
 and coordinating with friends, family, or teammates effortless. It
 eliminates the back-and-forth of finding a common time to meet by
@@ -70,4 +72,3 @@ set their availability, and instantly see when everyone is free.
     -   Click Save to update your schedule for all groups.
 5.  **Check Schedules**: Use the tools on the right to check who is free
     at a specific time or find common free slots for multiple friends.
-
