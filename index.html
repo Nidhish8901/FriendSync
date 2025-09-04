@@ -814,12 +814,10 @@
                     vevents.forEach(vevent => {
                         const event = new ICAL.Event(vevent);
                         
-                        // Get the day from the start date of the event
+                        // FIX: Use the converted JS Date object to get the local day and hour
                         const jsDate = event.startDate.toJSDate();
                         const day = dayMap[jsDate.getDay()];
-                        
-                        // Get the hour
-                        const hour = event.startDate.hour;
+                        const hour = jsDate.getHours();
 
                         if (day && hour >= startTime && hour < endTime) {
                             const time = `${String(hour).padStart(2, '0')}:00`;
@@ -863,4 +861,3 @@
     </script>
 </body>
 </html>
-
