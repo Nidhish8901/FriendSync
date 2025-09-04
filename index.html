@@ -162,7 +162,7 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Your Schedule -->
-            <div class="lg-col-span-2 tech-card p-6">
+            <div class="lg:col-span-2 tech-card p-6">
                 <div class="flex justify-between items-center mb-4 flex-wrap">
                     <h2 class="text-2xl font-bold mb-2 md:mb-0">My Global Schedule</h2>
                     <div class="flex items-center flex-wrap">
@@ -229,7 +229,7 @@
     <!-- Supabase and App Logic -->
     <script type="module">
         const SUPABASE_URL = 'https://fqyvdxvblhoszymjemlh.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInRypeCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZxeXZkeHZibGhvc3p5bWplbWxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMDc3MjYsImV4cCI6MjA3MTY4MzcyNn0.fatb73q1t50P6aus_eCF3FuuLMPm4KyInPGxycybxl4';
 
         const { createClient } = supabase;
         const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
