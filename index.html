@@ -222,17 +222,16 @@
             </p>
 
             <div class="border-t border-gray-700 pt-6">
-                <h3 class="text-xl font-semibold text-gray-200">Created By</h3>
-                <p class="text-lg text-blue-400 mt-2">NIDHISH CHAKRADHAR REDDY</p>
+                <h3 class="text-xl font-semibold text-gray-200">A little project by</h3>
+                <p class="text-2xl text-cyan-300 mt-2 font-mono tracking-wider">NIDHISH CHAKRADHAR REDDY</p>
             </div>
 
             <div class="mt-6">
-                <h3 class="text-xl font-semibold text-gray-200">Feedback & Contact</h3>
+                <h3 class="text-xl font-semibold text-gray-200">Got ideas or questions?</h3>
                 <p class="text-gray-300 mt-2">
-                    Got an idea, a bug report, or some feedback? I'd love to hear from you!
+                    Feel free to reach out!
                 </p>
-                <p class="text-gray-300 mt-1">Please drop me an email at:</p>
-                <a href="mailto:f20230937@hyderabad.bits-pilani.ac.in" class="text-lg text-blue-400 hover:underline font-mono mt-2 inline-block">f20230937@hyderabad.bits-pilani.ac.in</a>
+                <a href="mailto:f20230937@hyderabad.bits-pilani.ac.in" class="text-xl text-cyan-300 hover:underline font-mono mt-2 inline-block tracking-wider">F20230937@HYDERABAD.BITS-PILANI.AC.IN</a>
             </div>
         </div>
     </div>
@@ -294,7 +293,7 @@
 
             <!-- Right Column: Check Availability -->
             <div class="tech-card p-4 sm:p-6">
-                <h2 class="text-xl sm:text-2xl font-bold mb-4">Check Availability</h2>
+                <h2 class="text-xl sm:text-2xl font-bold mb-4">Check Availability at a Specific Time</h2>
                 <div class="space-y-4">
                     <div>
                         <label for="day-select" class="block text-sm font-medium text-gray-300">Day:</label>
@@ -312,8 +311,32 @@
                         <p class="text-gray-400">Results will be displayed here.</p>
                     </div>
                 </div>
+                
+                <div class="border-t border-gray-700 my-6"></div>
+
+                <h2 class="text-xl sm:text-2xl font-bold mb-4">Find a Friend's Free Slots</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="friend-select" class="block text-sm font-medium text-gray-300">Friend:</label>
+                        <select id="friend-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input">
+                            <option value="">Select a friend</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="friend-day-select" class="block text-sm font-medium text-gray-300">Day:</label>
+                        <select id="friend-day-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input"></select>
+                    </div>
+                    <button id="check-friend-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Find Free Times</button>
+                </div>
+                <div id="friend-results-container" class="mt-6">
+                    <h3 class="text-xl font-bold mb-2">Friend's Availability</h3>
+                    <div id="friend-free-times-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
+                        <p class="text-gray-400">Select a friend and a day to see their free slots.</p>
+                    </div>
+                </div>
+
                 <!-- Group Members Section -->
-                <div id="members-container" class="mt-6">
+                <div id="members-container" class="mt-6 border-t border-gray-700 pt-6">
                     <div class="flex justify-between items-center mb-2">
                          <h3 class="text-xl font-bold">Group Members</h3>
                          <button id="invite-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Invite</button>
@@ -373,6 +396,10 @@
         const userGroupsList = document.getElementById('user-groups-list');
         const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
+        const friendSelect = document.getElementById('friend-select');
+        const friendDaySelect = document.getElementById('friend-day-select');
+        const checkFriendBtn = document.getElementById('check-friend-btn');
+        const friendFreeTimesList = document.getElementById('friend-free-times-list');
 
         let isMouseDown = false, isSelecting = false;
 
@@ -579,7 +606,13 @@
         function populateSelectors() {
             daySelect.innerHTML = '';
             timeSelect.innerHTML = '';
-            days.forEach(day => { daySelect.innerHTML += `<option value="${day}">${day}</option>`; });
+            friendDaySelect.innerHTML = '';
+
+            days.forEach(day => { 
+                daySelect.innerHTML += `<option value="${day}">${day}</option>`;
+                friendDaySelect.innerHTML += `<option value="${day}">${day}</option>`;
+            });
+
             for (let h = startTime; h < endTime; h++) {
                 const startHourStr = String(h).padStart(2, '0');
                 const timeLabel = `${startHourStr}:00 - ${startHourStr}:50`;
@@ -613,6 +646,7 @@
                 if(isMouseDown) { isMouseDown = false; } 
             });
             checkBtn.addEventListener('click', checkAvailability);
+            checkFriendBtn.addEventListener('click', checkFriendAvailability);
         }
 
         function handleInvite() {
@@ -816,6 +850,58 @@
             }
         }
 
+        function checkFriendAvailability() {
+            const selectedFriendId = friendSelect.value;
+            const selectedDay = friendDaySelect.value;
+
+            if (!selectedFriendId) {
+                friendFreeTimesList.innerHTML = '<p class="text-yellow-300">Please select a friend first.</p>';
+                return;
+            }
+            const selectedFriendName = friendSelect.options[friendSelect.selectedIndex].text;
+
+            const friendSchedule = allSchedules[selectedFriendId] || [];
+            const friendBusySlotsOnDay = friendSchedule
+                .filter(slot => slot.day === selectedDay)
+                .map(slot => slot.time);
+
+            const allDaySlots = [];
+            for (let h = startTime; h < endTime; h++) {
+                const time = `${String(h).padStart(2, '0')}:00`;
+                const timeLabel = `${time.slice(0,5)}`;
+                allDaySlots.push({ time, timeLabel });
+            }
+
+            const freeSlots = allDaySlots.filter(slot => !friendBusySlotsOnDay.includes(slot.time));
+            renderFriendFreeTimes(freeSlots, selectedFriendName, selectedDay);
+        }
+
+        function renderFriendFreeTimes(freeSlots, friendName, day) {
+            friendFreeTimesList.innerHTML = '';
+            const header = document.createElement('p');
+            header.className = 'text-gray-300 mb-3';
+            header.innerHTML = `<span class="font-bold">${friendName}</span> is free on <span class="font-bold">${day}</span> at:`;
+            friendFreeTimesList.appendChild(header);
+
+            if (freeSlots.length === 0) {
+                const noSlots = document.createElement('div');
+                noSlots.className = 'text-center p-4 bg-yellow-600 bg-opacity-20 border border-yellow-500 text-yellow-300 rounded-md';
+                noSlots.textContent = `${friendName} is busy all day.`;
+                friendFreeTimesList.appendChild(noSlots);
+            } else {
+                const list = document.createElement('ul');
+                list.className = 'grid grid-cols-2 sm:grid-cols-3 gap-2';
+                freeSlots.forEach(slot => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'bg-green-600 bg-opacity-20 border border-green-500 text-green-300 p-2 rounded-md text-sm text-center font-mono';
+                    listItem.textContent = slot.timeLabel;
+                    list.appendChild(listItem);
+                });
+                friendFreeTimesList.appendChild(list);
+            }
+        }
+
+
         async function fetchGroupMembers() {
             if (!groupId) return;
             const { data: memberData, error: memberError } = await db.from('group_memberships').select('user_id').eq('group_id', groupId);
@@ -849,6 +935,8 @@
 
         function renderGroupMembers(members) {
             groupMembersList.innerHTML = '';
+             friendSelect.innerHTML = '<option value="">Select a friend</option>';
+
             if (members.length === 0) {
                 const noMembers = document.createElement('p');
                 noMembers.className = 'text-gray-400';
@@ -858,6 +946,7 @@
                 const list = document.createElement('ul');
                 list.className = 'space-y-2';
                 members.forEach(member => {
+                    // Populate group members list
                     const listItem = document.createElement('li');
                     listItem.className = 'bg-gray-800 border border-gray-700 text-gray-300 p-2 rounded-md text-sm flex items-center';
                     const icon = document.createElement('span');
@@ -868,6 +957,12 @@
                     if (user && member.id === user.id) {
                         nameSpan.textContent += " (You)";
                         nameSpan.className = "font-bold";
+                    } else {
+                         // Populate friend selector dropdown
+                        const option = document.createElement('option');
+                        option.value = member.id;
+                        option.textContent = member.name;
+                        friendSelect.appendChild(option);
                     }
                     listItem.appendChild(nameSpan);
                     list.appendChild(listItem);
