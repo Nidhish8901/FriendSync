@@ -571,8 +571,10 @@
                 showView('app-container');
             } catch (error) {
                 console.error("Error initializing app view:", error);
-                groupMembersList.innerHTML = '<p class="text-red-400">Error loading group data.</p>';
+                groupError.textContent = "Error loading group data.";
                 await showGroupDashboard();
+            } finally {
+                loadingOverlay.classList.add('hidden');
             }
         }
 
@@ -719,7 +721,10 @@
             uploadIcsBtn.addEventListener('click', handleIcsUpload);
             inviteBtn.addEventListener('click', handleInvite);
             aboutBtn.addEventListener('click', () => showView('about-view'));
-            closeAboutBtn.addEventListener('click', () => showView('group-dashboard-view'));
+            closeAboutBtn.addEventListener('click', () => {
+                if(groupId) showView('app-container');
+                else showView('group-dashboard-view');
+            });
             howToBtn.addEventListener('click', () => showView('how-to-view'));
             closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
 
