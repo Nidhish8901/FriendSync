@@ -100,6 +100,7 @@
             justify-content: center;
             align-items: center;
             z-index: 100;
+            padding: 1rem;
         }
         .group-list-item {
             background-color: rgba(55, 65, 81, 0.3);
@@ -116,11 +117,30 @@
                               radial-gradient(circle at bottom, rgba(34, 211, 238, 0.4), transparent 70%);
             border: 1px solid #3B82F6;
         }
+         @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-left-color: #3B82F6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        #how-to-chevron {
+            transition: transform 0.3s ease;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading View -->
+    <div id="loading-view" class="modal-backdrop">
+        <div class="spinner"></div>
+    </div>
+
     <!-- Login View -->
-    <div id="login-view" class="modal-backdrop">
+    <div id="login-view" class="modal-backdrop hidden">
         <div class="tech-card p-8 w-full max-w-sm text-center">
             <h2 class="text-2xl font-bold mb-4 text-center tech-header">Welcome to FriendSync</h2>
             <p class="text-gray-400 mb-6 text-center text-sm">Sign in to coordinate schedules with your friends.</p>
@@ -133,9 +153,9 @@
 
     <!-- Group Dashboard View -->
     <div id="group-dashboard-view" class="modal-backdrop hidden">
-        <div class="tech-card p-8 w-full max-w-lg">
+        <div class="tech-card p-6 md:p-8 w-full max-w-lg">
             <div class="flex justify-between items-center mb-6">
-                 <h2 class="text-2xl font-bold tech-header">Your Groups</h2>
+                 <h2 class="text-xl md:text-2xl font-bold tech-header">Your Groups</h2>
                  <div class="flex items-center space-x-2">
                     <button id="about-btn" class="inline-flex items-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -152,14 +172,33 @@
             </div>
 
             <!-- How to use section -->
-            <div class="my-6 p-4 border border-dashed border-gray-600 rounded-lg bg-gray-900/20">
-                 <h3 class="text-lg font-bold text-center mb-3 text-gray-200">How to Get Started</h3>
-                 <ol class="list-decimal list-inside space-y-2 text-sm text-gray-300">
-                     <li><strong>Create or Join a Group:</strong> Use the form below. Share the unique Group ID with your friends so they can join!</li>
-                     <li><strong>Select a Group:</strong> Click on any group from your list above to open its shared schedule view.</li>
-                     <li><strong>Set Your Schedule:</strong> Once in a group, upload an ICS file or click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</li>
-                     <li><strong>Find a Time:</strong> Use the "Check Availability" tool to instantly see when everyone in the group is free to connect.</li>
-                 </ol>
+             <div class="my-6">
+                <div id="how-to-toggle" class="p-3 bg-gray-800/50 border border-gray-600 rounded-lg cursor-pointer flex justify-between items-center hover:bg-gray-700/50 transition-colors">
+                    <h3 class="text-lg font-bold text-gray-200">🚀 How to Get Started</h3>
+                    <svg id="how-to-chevron" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+                <div id="how-to-content" class="hidden mt-2 p-4 border border-t-0 border-gray-600 rounded-b-lg bg-gray-900/20">
+                     <ol class="list-decimal list-inside space-y-3 text-sm text-gray-300">
+                         <li>
+                             <strong class="font-semibold text-white">Create or Join a Group:</strong>
+                             <p class="pl-2 text-xs">Use the form below. Share the unique Group ID with your friends so they can join!</p>
+                         </li>
+                         <li>
+                             <strong class="font-semibold text-white">Select a Group:</strong>
+                             <p class="pl-2 text-xs">Click on any group from your list above to open its shared schedule view.</p>
+                         </li>
+                         <li>
+                             <strong class="font-semibold text-white">Set Your Schedule:</strong>
+                             <p class="pl-2 text-xs">Once in a group, upload an ICS file or click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</p>
+                         </li>
+                         <li>
+                             <strong class="font-semibold text-white">Find a Time:</strong>
+                             <p class="pl-2 text-xs">Use the "Check Availability" tool to instantly see when everyone in the group is free to connect.</p>
+                         </li>
+                     </ol>
+                </div>
             </div>
 
 
@@ -212,7 +251,7 @@
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-5xl font-bold tech-header">FriendSync</h1>
             <p class="text-md md:text-lg text-gray-300 mt-2">Coordinate schedules with your friends effortlessly.</p>
-            <div class="mt-4 space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
+            <div class="mt-4 space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center gap-2">
                  <div id="groupInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
                 <div id="userInfo" class="p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
             </div>
@@ -221,18 +260,18 @@
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Left Column: Your Schedule -->
             <div class="lg:col-span-2 tech-card p-6">
-                <div class="flex justify-between items-center mb-4 flex-wrap">
-                    <h2 class="text-2xl font-bold mb-2 md:mb-0">My Global Schedule</h2>
-                    <div class="flex items-center flex-wrap">
-                        <div class="relative flex items-center mr-2 mb-2 md:mb-0">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 class="text-2xl font-bold">My Global Schedule</h2>
+                    <div class="flex items-center flex-wrap gap-2">
+                        <div class="relative flex items-center">
                             <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
                                 Save
                             </button>
                              <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
-                        <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 mb-2 md:mb-0">Switch Group</button>
-                        <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mb-2 md:mb-0">Leave Group</button>
+                        <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Switch Group</button>
+                        <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
                     </div>
                 </div>
                 
@@ -311,7 +350,8 @@
 
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const startTime = 8, endTime = 18;
-
+        
+        const loadingView = document.getElementById('loading-view');
         const loginView = document.getElementById('login-view');
         const groupDashboardView = document.getElementById('group-dashboard-view');
         const appContainer = document.getElementById('app-container');
@@ -342,6 +382,9 @@
         const userGroupsList = document.getElementById('user-groups-list');
         const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
+        const howToToggle = document.getElementById('how-to-toggle');
+        const howToContent = document.getElementById('how-to-content');
+        const howToChevron = document.getElementById('how-to-chevron');
 
         let isMouseDown = false, isSelecting = false;
 
@@ -360,14 +403,18 @@
         }
         
         async function handleAuthStateChange(event, session) {
-            if (event === 'SIGNED_IN') {
+            if (event === 'INITIAL_SESSION' && !session) {
+                loadingView.classList.add('hidden');
+                loginView.classList.remove('hidden');
+            } else if (session) {
                 user = session.user;
                 const { error } = await db.from('profiles').upsert({
                     id: user.id,
                     full_name: user.user_metadata.full_name,
                 });
                 if (error) console.error("Error saving user profile:", error);
-
+                
+                loadingView.classList.add('hidden');
                 loginView.classList.add('hidden');
                 aboutView.classList.add('hidden');
                 await showGroupDashboard();
@@ -377,6 +424,7 @@
                 appContainer.classList.add('hidden');
                 groupDashboardView.classList.add('hidden');
                 aboutView.classList.add('hidden');
+                loadingView.classList.add('hidden');
                 loginView.classList.remove('hidden');
             }
         }
@@ -566,6 +614,10 @@
             inviteBtn.addEventListener('click', handleInvite);
             aboutBtn.addEventListener('click', () => aboutView.classList.remove('hidden'));
             closeAboutBtn.addEventListener('click', () => aboutView.classList.add('hidden'));
+            howToToggle.addEventListener('click', () => {
+                howToContent.classList.toggle('hidden');
+                howToChevron.classList.toggle('rotate-180');
+            });
 
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
