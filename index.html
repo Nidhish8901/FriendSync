@@ -48,7 +48,7 @@
              background-color: #3B82F6;
              color: white;
         }
-        .tech-input {
+        .tech-input, select[multiple] {
             background-color: rgba(17, 24, 39, 0.8); /* Gray-900 */
             border: 1px solid #4B5563; /* Gray-600 */
             color: #E5E7EB;
@@ -58,10 +58,17 @@
         .tech-input::placeholder {
             color: #6B7280; /* Gray-500 */
         }
-        .tech-input:focus {
+        .tech-input:focus, select[multiple]:focus {
             outline: none;
             border-color: #3B82F6;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4);
+        }
+        select[multiple] option {
+            padding: 0.5rem;
+        }
+        select[multiple] option:checked {
+            background: rgba(59, 130, 246, 0.4);
+            color: white;
         }
         .tech-header {
             color: #F9FAFB; /* Gray-50 */
@@ -274,7 +281,6 @@
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
                         <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Switch Group</button>
-                        <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Leave Group</button>
                     </div>
                 </div>
                 
@@ -326,24 +332,24 @@
                 
                 <div class="border-t border-gray-700 my-6"></div>
 
-                <h2 class="text-xl sm:text-2xl font-bold mb-4">Find a Friend's Free Slots</h2>
+                <h2 class="text-xl sm:text-2xl font-bold mb-4">Find Common Free Slots</h2>
                 <div class="space-y-4">
                     <div>
-                        <label for="friend-select" class="block text-sm font-medium text-gray-300">Friend:</label>
-                        <select id="friend-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input">
-                            <option value="">Select a friend</option>
+                        <label for="friend-select" class="block text-sm font-medium text-gray-300">Friends (select one or more):</label>
+                        <select id="friend-select" multiple class="mt-1 block w-full h-32 p-2 tech-input">
+                            <!-- Options will be populated dynamically -->
                         </select>
                     </div>
                     <div>
                         <label for="friend-day-select" class="block text-sm font-medium text-gray-300">Day:</label>
                         <select id="friend-day-select" class="mt-1 block w-full pl-3 pr-10 py-2 tech-input"></select>
                     </div>
-                    <button id="check-friend-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Find Free Times</button>
+                    <button id="check-friend-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Find Common Free Times</button>
                 </div>
                 <div id="friend-results-container" class="mt-6">
-                    <h3 class="text-xl font-bold mb-2">Friend's Availability</h3>
+                    <h3 class="text-xl font-bold mb-2">Common Availability</h3>
                     <div id="friend-free-times-list" class="bg-gray-900 bg-opacity-70 p-4 min-h-[100px] rounded-lg border border-gray-700">
-                        <p class="text-gray-400">Select a friend and a day to see their free slots.</p>
+                        <p class="text-gray-400">Select friends and a day to see their common free slots.</p>
                     </div>
                 </div>
 
@@ -391,7 +397,6 @@
         const groupIdInput = document.getElementById('group-id-input');
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
-        const leaveGroupBtn = document.getElementById('leave-group-btn');
         const switchGroupBtn = document.getElementById('switch-group-btn');
         const downloadIcsBtn = document.getElementById('download-ics-btn');
         const uploadIcsBtn = document.getElementById('upload-ics-btn');
@@ -481,11 +486,30 @@
                 return;
             }
             groups.forEach(gId => {
-                const groupButton = document.createElement('button');
-                groupButton.className = 'w-full text-left p-3 rounded-lg group-list-item font-mono';
-                groupButton.textContent = gId;
-                groupButton.onclick = () => initializeApp(gId);
-                userGroupsList.appendChild(groupButton);
+                const groupItem = document.createElement('div');
+                groupItem.className = 'group-list-item rounded-lg flex items-center justify-between p-3';
+
+                const groupName = document.createElement('span');
+                groupName.className = 'font-mono cursor-pointer flex-grow';
+                groupName.textContent = gId;
+                groupName.onclick = () => initializeApp(gId);
+
+                const leaveButton = document.createElement('button');
+                leaveButton.className = 'text-xs bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-2 rounded-md transition-colors flex-shrink-0';
+                leaveButton.textContent = 'Leave';
+                leaveButton.onclick = async () => {
+                    const confirmation = window.prompt(`Type "${gId}" to confirm you want to leave this group.`);
+                    if (confirmation !== gId) return;
+
+                    if (user && gId) {
+                        await db.from('group_memberships').delete().match({ user_id: user.id, group_id: gId });
+                    }
+                    await showGroupDashboard();
+                };
+
+                groupItem.appendChild(groupName);
+                groupItem.appendChild(leaveButton);
+                userGroupsList.appendChild(groupItem);
             });
         }
 
@@ -588,16 +612,6 @@
                     await showGroupDashboard();
                 }
             };
-
-            leaveGroupBtn.onclick = async () => {
-                const confirmation = window.prompt(`Type "${groupId}" to confirm you want to leave this group.`);
-                if (confirmation !== groupId) return;
-
-                if (user && groupId) {
-                    await db.from('group_memberships').delete().match({ user_id: user.id, group_id: groupId });
-                }
-                await showGroupDashboard();
-            };
             
             switchGroupBtn.onclick = showGroupDashboard;
         }
@@ -666,7 +680,7 @@
                 if(isMouseDown) { isMouseDown = false; } 
             });
             checkBtn.addEventListener('click', checkAvailability);
-            checkFriendBtn.addEventListener('click', checkFriendAvailability);
+            checkFriendBtn.addEventListener('click', checkCommonAvailability);
         }
 
         function handleInvite() {
@@ -870,20 +884,16 @@
             }
         }
 
-        function checkFriendAvailability() {
-            const selectedFriendId = friendSelect.value;
+        function checkCommonAvailability() {
+            const selectedFriendOptions = Array.from(friendSelect.selectedOptions);
+            const selectedFriendIds = selectedFriendOptions.map(opt => opt.value);
+            const selectedFriendNames = selectedFriendOptions.map(opt => opt.textContent);
             const selectedDay = friendDaySelect.value;
 
-            if (!selectedFriendId) {
-                friendFreeTimesList.innerHTML = '<p class="text-yellow-300">Please select a friend first.</p>';
+            if (selectedFriendIds.length === 0) {
+                friendFreeTimesList.innerHTML = '<p class="text-yellow-300">Please select at least one friend.</p>';
                 return;
             }
-            const selectedFriendName = friendSelect.options[friendSelect.selectedIndex].text;
-
-            const friendSchedule = allSchedules[selectedFriendId] || [];
-            const friendBusySlotsOnDay = friendSchedule
-                .filter(slot => slot.day === selectedDay)
-                .map(slot => slot.time);
 
             const allDaySlots = [];
             for (let h = startTime; h < endTime; h++) {
@@ -892,21 +902,28 @@
                 allDaySlots.push({ time, timeLabel });
             }
 
-            const freeSlots = allDaySlots.filter(slot => !friendBusySlotsOnDay.includes(slot.time));
-            renderFriendFreeTimes(freeSlots, selectedFriendName, selectedDay);
+            const commonFreeSlots = allDaySlots.filter(slot => {
+                return selectedFriendIds.every(friendId => {
+                    const friendSchedule = allSchedules[friendId] || [];
+                    return !friendSchedule.some(busySlot => busySlot.day === selectedDay && busySlot.time === slot.time);
+                });
+            });
+
+            renderCommonFreeTimes(commonFreeSlots, selectedFriendNames, selectedDay);
         }
 
-        function renderFriendFreeTimes(freeSlots, friendName, day) {
+        function renderCommonFreeTimes(freeSlots, friendNames, day) {
             friendFreeTimesList.innerHTML = '';
             const header = document.createElement('p');
             header.className = 'text-gray-300 mb-3';
-            header.innerHTML = `<span class="font-bold">${friendName}</span> is free on <span class="font-bold">${day}</span> at:`;
+            const nameList = friendNames.map(name => `<span class="font-bold">${name}</span>`).join(', ');
+            header.innerHTML = `${nameList} are all free on <span class="font-bold">${day}</span> at:`;
             friendFreeTimesList.appendChild(header);
 
             if (freeSlots.length === 0) {
                 const noSlots = document.createElement('div');
                 noSlots.className = 'text-center p-4 bg-yellow-600 bg-opacity-20 border border-yellow-500 text-yellow-300 rounded-md';
-                noSlots.textContent = `${friendName} is busy all day.`;
+                noSlots.textContent = `No common free slots found.`;
                 friendFreeTimesList.appendChild(noSlots);
             } else {
                 const list = document.createElement('ul');
@@ -920,7 +937,6 @@
                 friendFreeTimesList.appendChild(list);
             }
         }
-
 
         async function fetchGroupMembers() {
             if (!groupId) return;
@@ -955,7 +971,7 @@
 
         function renderGroupMembers(members) {
             groupMembersList.innerHTML = '';
-             friendSelect.innerHTML = '<option value="">Select a friend</option>';
+             friendSelect.innerHTML = ''; // Clear previous options
 
             if (members.length === 0) {
                 const noMembers = document.createElement('p');
