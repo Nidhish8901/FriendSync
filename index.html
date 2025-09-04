@@ -37,6 +37,10 @@
         .tech-button-primary:hover {
             background-color: #2563EB; /* Blue-600 */
         }
+         .tech-button-primary:disabled {
+            background-color: #9CA3AF;
+            cursor: not-allowed;
+        }
         .tech-button-secondary {
             background-color: transparent;
             border: 1px solid #3B82F6;
@@ -47,6 +51,11 @@
         .tech-button-secondary:hover {
              background-color: #3B82F6;
              color: white;
+        }
+        .tech-button-secondary:disabled {
+            border-color: #6B7280;
+            color: #6B7280;
+            cursor: not-allowed;
         }
         .tech-input, select[multiple] {
             background-color: rgba(17, 24, 39, 0.8); /* Gray-900 */
@@ -128,6 +137,11 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="modal-backdrop hidden items-center">
+        <div class="text-white text-2xl font-semibold animate-pulse">Loading...</div>
+    </div>
+
     <!-- Login View -->
     <div id="login-view" class="modal-backdrop">
         <div class="tech-card p-8 w-full max-w-sm text-center mx-4 my-auto">
@@ -183,7 +197,7 @@
     
     <!-- How To Get Started View -->
     <div id="how-to-view" class="modal-backdrop hidden">
-        <div class="tech-card p-8 w-full max-w-2xl text-center relative mx-4 my-auto">
+        <div class="tech-card about-card-custom p-8 w-full max-w-2xl text-center relative mx-4 my-auto">
             <button id="close-how-to-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -385,11 +399,14 @@
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const startTime = 8, endTime = 18;
 
+        const loadingOverlay = document.getElementById('loading-overlay');
         const loginView = document.getElementById('login-view');
         const groupDashboardView = document.getElementById('group-dashboard-view');
         const appContainer = document.getElementById('app-container');
         const aboutView = document.getElementById('about-view');
         const howToView = document.getElementById('how-to-view');
+        const views = [loginView, groupDashboardView, appContainer, aboutView, howToView];
+
         const googleLoginBtn = document.getElementById('google-login-btn');
         const dashboardSignOutBtn = document.getElementById('dashboard-sign-out-btn');
         const saveScheduleBtn = document.getElementById('save-schedule-btn');
@@ -424,44 +441,46 @@
 
         let isMouseDown = false, isSelecting = false;
 
+        function showView(viewId) {
+            views.forEach(view => {
+                if (view.id === viewId) {
+                    view.classList.remove('hidden');
+                } else {
+                    view.classList.add('hidden');
+                }
+            });
+            loadingOverlay.classList.add('hidden');
+        }
+
         async function handleGoogleLogin() {
             const { error } = await db.auth.signInWithOAuth({ provider: 'google' });
             if (error) console.error('Error logging in with Google:', error);
         }
 
         function resetAppState() {
-            // 1. Reset state variables
             user = null;
             groupId = null;
             userSchedule = [];
             allSchedules = {};
 
-            // 2. Disconnect from realtime channel
             if (realtimeChannel) {
                 db.removeChannel(realtimeChannel);
                 realtimeChannel = null;
             }
 
-            // 3. Clear UI elements
             userGroupsList.innerHTML = '';
             groupMembersList.innerHTML = '<p class="text-gray-400">Loading members...</p>';
             freeFriendsList.innerHTML = '<p class="text-gray-400">Results will be displayed here.</p>';
             friendFreeTimesList.innerHTML = '<p class="text-gray-400">Select friends and a day to see their common free slots.</p>';
             groupIdInput.value = '';
             groupError.textContent = '';
-
-
-            // 4. Switch views
-            appContainer.classList.add('hidden');
-            groupDashboardView.classList.add('hidden');
-            aboutView.classList.add('hidden');
-            howToView.classList.add('hidden');
-            loginView.classList.remove('hidden');
+            
+            showView('login-view');
         }
 
         async function handleSignOut() {
             await db.auth.signOut();
-            resetAppState();
+            // onAuthStateChange will handle the reset
         }
         
         async function handleAuthStateChange(event, session) {
@@ -472,12 +491,7 @@
                     full_name: user.user_metadata.full_name,
                 });
                 if (error) console.error("Error saving user profile:", error);
-
-                loginView.classList.add('hidden');
-                aboutView.classList.add('hidden');
-                howToView.classList.add('hidden');
                 await showGroupDashboard();
-
             } else if (event === 'SIGNED_OUT') {
                 resetAppState();
             }
@@ -488,12 +502,14 @@
                 db.removeChannel(realtimeChannel);
                 realtimeChannel = null;
             }
-            appContainer.classList.add('hidden');
-            aboutView.classList.add('hidden');
-            howToView.classList.add('hidden');
-            groupDashboardView.classList.remove('hidden');
-
+            groupId = null;
+            allSchedules = {};
+            
+            showView('group-dashboard-view');
+            loadingOverlay.classList.remove('hidden');
             const { data, error } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
+            loadingOverlay.classList.add('hidden');
+
             if (error) {
                 console.error("Error fetching user groups:", error);
                 return;
@@ -537,30 +553,50 @@
 
         async function initializeApp(gId) {
             groupId = gId;
-            
-            groupDashboardView.classList.add('hidden');
-            appContainer.classList.remove('hidden');
+            showView('app-container');
+            loadingOverlay.classList.remove('hidden');
             
             groupMembersList.innerHTML = '<p class="text-gray-400">Loading members...</p>';
             freeFriendsList.innerHTML = '<p class="text-gray-400">Results will be displayed here.</p>';
-            allSchedules = {};
+            friendFreeTimesList.innerHTML = '<p class="text-gray-400">Select friends and a day to see their common free slots.</p>';
 
             const userName = user.user_metadata?.full_name || 'Unknown User';
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
+            try {
+                await Promise.all([
+                    loadUserScheduleAndApplyToGroup(),
+                    fetchAllSchedules(),
+                    fetchGroupMembers()
+                ]);
+                listenToAllSchedules();
+            } catch (error) {
+                console.error("Error initializing app view:", error);
+                groupMembersList.innerHTML = '<p class="text-red-400">Error loading group data.</p>';
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        async function loadUserScheduleAndApplyToGroup() {
             const { data: anySchedule, error: fetchError } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
-            if (fetchError) console.error("Error fetching master schedule:", fetchError);
+            if (fetchError) {
+                console.error("Error fetching master schedule:", fetchError);
+                throw fetchError;
+            }
 
             const scheduleToApply = (anySchedule && anySchedule.length > 0) ? anySchedule[0].schedule : [];
-            const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: gId, schedule: scheduleToApply });
-            if (upsertError) console.error("Error applying schedule to new group:", upsertError);
+            userSchedule = scheduleToApply;
+            updateTimetableUI();
 
-            await loadUserSchedule();
-            await fetchAllSchedules();
-            await fetchGroupMembers();
-            listenToAllSchedules();
+            const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: scheduleToApply });
+            if (upsertError) {
+                console.error("Error applying schedule to new group:", upsertError);
+                throw upsertError;
+            }
         }
+
 
         function setupGroupListeners() {
             joinGroupBtn.onclick = async () => {
@@ -569,31 +605,34 @@
                     groupError.textContent = "Please enter a Group ID.";
                     return;
                 }
+                
+                joinGroupBtn.disabled = true;
+                joinGroupBtn.textContent = 'Joining...';
+                createGroupBtn.disabled = true;
                 groupError.textContent = "Checking...";
 
-                const { data, error: checkError } = await db.from('groups').select('id').eq('id', inputId).limit(1);
+                try {
+                    const { data, error: checkError } = await db.from('groups').select('id').eq('id', inputId).limit(1);
+                    if (checkError) throw checkError;
+                    if (data.length === 0) {
+                        groupError.textContent = "Group does not exist.";
+                        return;
+                    }
 
-                if (checkError) {
-                    console.error("Error checking group existence:", checkError);
-                    groupError.textContent = "Error checking group.";
-                    return;
-                }
+                    const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
+                    if (membershipError) throw membershipError;
 
-                if (data.length === 0) {
-                    groupError.textContent = "Group does not exist.";
-                    return;
+                    groupError.textContent = "";
+                    groupIdInput.value = "";
+                    await showGroupDashboard();
+                } catch (err) {
+                    console.error("Error joining group:", err);
+                    groupError.textContent = "Failed to join group.";
+                } finally {
+                    joinGroupBtn.disabled = false;
+                    joinGroupBtn.textContent = 'Join';
+                    createGroupBtn.disabled = false;
                 }
-
-                const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
-                if (membershipError) {
-                    console.error("Error joining group membership:", membershipError);
-                    groupError.textContent = "Could not join group.";
-                    return;
-                }
-                
-                groupError.textContent = "";
-                groupIdInput.value = "";
-                await showGroupDashboard();
             };
 
             createGroupBtn.onclick = async () => {
@@ -603,35 +642,35 @@
                     return;
                 }
                 
+                createGroupBtn.disabled = true;
+                createGroupBtn.textContent = 'Creating...';
+                joinGroupBtn.disabled = true;
                 groupError.textContent = "Checking...";
-                const { data, error } = await db.from('groups').select('id').eq('id', inputId).limit(1);
+                
+                try {
+                    const { data, error } = await db.from('groups').select('id').eq('id', inputId).limit(1);
+                    if (error) throw error;
 
-                if (error) {
-                    console.error("Error checking group ID:", error);
-                    groupError.textContent = "Error checking ID.";
-                    return;
-                }
+                    if (data.length > 0) {
+                        groupError.textContent = "Group ID already taken.";
+                    } else {
+                        const { error: insertError } = await db.from('groups').insert({ id: inputId, created_by: user.id });
+                        if (insertError) throw insertError;
+                        
+                        const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
+                        if (membershipError) throw membershipError;
 
-                if (data.length > 0) {
-                    groupError.textContent = "Group ID already taken.";
-                } else {
-                    const { error: insertError } = await db.from('groups').insert({ id: inputId, created_by: user.id });
-                    if(insertError) {
-                        console.error("Error creating group:", insertError);
-                        groupError.textContent = "Could not create group.";
-                        return;
+                        groupError.textContent = "";
+                        groupIdInput.value = "";
+                        await showGroupDashboard();
                     }
-                    
-                    const { error: membershipError } = await db.from('group_memberships').upsert({ group_id: inputId, user_id: user.id });
-                    if (membershipError) {
-                        console.error("Error adding creator to group membership:", membershipError);
-                        groupError.textContent = "Could not join group.";
-                        return;
-                    }
-
-                    groupError.textContent = "";
-                    groupIdInput.value = "";
-                    await showGroupDashboard();
+                } catch (err) {
+                    console.error("Error creating group:", err);
+                    groupError.textContent = "Could not create group.";
+                } finally {
+                    createGroupBtn.disabled = false;
+                    createGroupBtn.textContent = 'Create';
+                    joinGroupBtn.disabled = false;
                 }
             };
             
@@ -682,10 +721,10 @@
             downloadIcsBtn.addEventListener('click', downloadIcsFile);
             uploadIcsBtn.addEventListener('click', handleIcsUpload);
             inviteBtn.addEventListener('click', handleInvite);
-            aboutBtn.addEventListener('click', () => aboutView.classList.remove('hidden'));
-            closeAboutBtn.addEventListener('click', () => aboutView.classList.add('hidden'));
-            howToBtn.addEventListener('click', () => howToView.classList.remove('hidden'));
-            closeHowToBtn.addEventListener('click', () => howToView.classList.add('hidden'));
+            aboutBtn.addEventListener('click', () => showView('about-view'));
+            closeAboutBtn.addEventListener('click', () => showView('group-dashboard-view'));
+            howToBtn.addEventListener('click', () => showView('how-to-view'));
+            closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
 
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
@@ -800,18 +839,6 @@
             saveScheduleBtn.textContent = 'Save';
         }
 
-        async function loadUserSchedule() {
-            if (!user) return;
-            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
-            if (error) {
-                console.error("Error loading global schedule: ", error);
-            }
-            else if (data && data.length > 0) {
-                userSchedule = data[0].schedule || [];
-                updateTimetableUI();
-            }
-        }
-
         function updateTimetableUI() {
             document.querySelectorAll('.time-slot').forEach(slot => {
                 slot.classList.remove('selected', 'free-hour');
@@ -827,7 +854,7 @@
              const { data, error } = await db.from('schedules').select('user_id, schedule').eq('group_id', groupId);
              if (error) {
                 console.error("Error fetching all schedules:", error);
-                return;
+                throw error;
              }
              allSchedules = {};
              data.forEach(item => { allSchedules[item.user_id] = item.schedule || []; });
@@ -867,7 +894,7 @@
                 const { data: profiles, error } = await db.from('profiles').select('id, full_name').in('id', freeFriendIds);
                 if (error) {
                     console.error("Error fetching profiles:", error);
-                    renderFreeFriends([]);
+                    renderFreeFriends([], selectedDay, selectedTime);
                     return;
                 }
                 const profileMap = new Map(profiles.map(p => [p.id, p.full_name]));
@@ -965,7 +992,7 @@
             const { data: memberData, error: memberError } = await db.from('group_memberships').select('user_id').eq('group_id', groupId);
             if (memberError) {
                 console.error("Error fetching group members:", memberError);
-                return;
+                throw memberError;
             }
             const userIds = [...new Set(memberData.map(m => m.user_id))];
 
@@ -977,7 +1004,7 @@
             const { data: profiles, error: profileError } = await db.from('profiles').select('id, full_name').in('id', userIds);
             if (profileError) {
                 console.error("Error fetching group members' profiles:", profileError);
-                return;
+                throw profileError;
             }
             
             const members = userIds.map(id => {
