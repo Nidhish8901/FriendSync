@@ -74,6 +74,9 @@
         .time-slot.selected {
             background-color: #3B82F6; /* Blue-500 */
         }
+        .time-slot.free-hour {
+            background-color: rgba(16, 185, 129, 0.2); /* Greenish for free hours */
+        }
         .time-slot:not(.selected):hover {
             background-color: rgba(59, 130, 246, 0.4);
         }
@@ -127,7 +130,10 @@
         <div class="tech-card p-8 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
                  <h2 class="text-2xl font-bold tech-header">Your Groups</h2>
-                 <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                 <div class="flex items-center space-x-2">
+                    <button id="about-btn" class="text-sm bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">About</button>
+                    <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                 </div>
             </div>
            
             <div id="user-groups-list" class="space-y-3 max-h-60 overflow-y-auto mb-6 pr-2">
@@ -144,6 +150,35 @@
                     </div>
                 </div>
                 <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- About View -->
+    <div id="about-view" class="modal-backdrop hidden">
+        <div class="tech-card p-8 w-full max-w-lg text-center relative">
+            <button id="close-about-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h2 class="text-3xl font-bold mb-4 text-center tech-header">About FriendSync</h2>
+            <p class="text-gray-300 mb-6">
+                FriendSync is a simple tool designed to make scheduling with friends, family, and teammates a breeze. No more endless back-and-forth messages! Just create a group, set your availability using the timetable or by importing an ICS file, and instantly see when everyone is free.
+            </p>
+
+            <div class="border-t border-gray-700 pt-6">
+                <h3 class="text-xl font-semibold text-gray-200">Created By</h3>
+                <p class="text-lg text-blue-400 mt-2">NIDHISH CHAKRADHAR REDDY</p>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold text-gray-200">Feedback & Contact</h3>
+                <p class="text-gray-300 mt-2">
+                    Got an idea, a bug report, or some feedback? I'd love to hear from you!
+                </p>
+                <p class="text-gray-300 mt-1">Please drop me an email at:</p>
+                <a href="mailto:f20230937@hyderabad.bits-pilani.ac.in" class="text-lg text-blue-400 hover:underline font-mono mt-2 inline-block">f20230937@hyderabad.bits-pilani.ac.in</a>
             </div>
         </div>
     </div>
@@ -173,7 +208,6 @@
                              <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
                              <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
                         </div>
-                        <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 mb-2 md:mb-0">Download ICS</button>
                         <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mr-2 mb-2 md:mb-0">Switch Group</button>
                         <button id="leave-group-btn" class="text-sm bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-3 rounded-md transition-colors mb-2 md:mb-0">Leave Group</button>
                     </div>
@@ -183,13 +217,17 @@
                     <p class="text-gray-400 mb-2 text-sm">Quickly import your schedule by uploading an ICS file.</p>
                     <div class="flex items-center space-x-2">
                         <input type="file" id="ics-upload-input" accept=".ics" class="block w-full text-sm text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"/>
-                        <button id="upload-ics-btn" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Upload & Preview</button>
+                        <button id="upload-ics-btn" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Upload & Auto-Save</button>
                     </div>
                      <p class="text-xs text-gray-500 mt-2">Need to create an ICS file from your timetable? Use this tool: <a href="https://chrono2ics.vercel.app/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Chrono2ICS</a></p>
                 </div>
 
                 <p class="text-gray-400 mb-4 text-sm">Or, set your availability manually. It will apply to all your groups.</p>
                 <div id="timetable" class="overflow-x-auto rounded-lg"></div>
+
+                <div class="flex justify-end mt-4">
+                    <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Download ICS</button>
+                </div>
             </div>
 
             <!-- Right Column: Check Availability -->
@@ -246,6 +284,7 @@
         const loginView = document.getElementById('login-view');
         const groupDashboardView = document.getElementById('group-dashboard-view');
         const appContainer = document.getElementById('app-container');
+        const aboutView = document.getElementById('about-view');
         const googleLoginBtn = document.getElementById('google-login-btn');
         const dashboardSignOutBtn = document.getElementById('dashboard-sign-out-btn');
         const saveScheduleBtn = document.getElementById('save-schedule-btn');
@@ -260,6 +299,8 @@
         const uploadIcsBtn = document.getElementById('upload-ics-btn');
         const icsUploadInput = document.getElementById('ics-upload-input');
         const inviteBtn = document.getElementById('invite-btn');
+        const aboutBtn = document.getElementById('about-btn');
+        const closeAboutBtn = document.getElementById('close-about-btn');
         const groupError = document.getElementById('group-error');
         const timetableDiv = document.getElementById('timetable');
         const daySelect = document.getElementById('day-select');
@@ -297,12 +338,14 @@
                 if (error) console.error("Error saving user profile:", error);
 
                 loginView.classList.add('hidden');
+                aboutView.classList.add('hidden');
                 await showGroupDashboard();
 
             } else if (event === 'SIGNED_OUT') {
                 user = null;
                 appContainer.classList.add('hidden');
                 groupDashboardView.classList.add('hidden');
+                aboutView.classList.add('hidden');
                 loginView.classList.remove('hidden');
             }
         }
@@ -313,6 +356,7 @@
                 realtimeChannel = null;
             }
             appContainer.classList.add('hidden');
+            aboutView.classList.add('hidden');
             groupDashboardView.classList.remove('hidden');
 
             const { data, error } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
@@ -488,6 +532,9 @@
             saveScheduleBtn.addEventListener('click', saveUserSchedule);
             downloadIcsBtn.addEventListener('click', downloadIcsFile);
             uploadIcsBtn.addEventListener('click', handleIcsUpload);
+            inviteBtn.addEventListener('click', handleInvite);
+            aboutBtn.addEventListener('click', () => aboutView.classList.remove('hidden'));
+            closeAboutBtn.addEventListener('click', () => aboutView.classList.add('hidden'));
 
             timetableDiv.addEventListener('mousedown', (e) => {
                 if (e.target.classList.contains('time-slot')) {
@@ -506,58 +553,99 @@
             checkBtn.addEventListener('click', checkAvailability);
         }
 
-        function toggleSlot(slot) {
-            if (isSelecting) slot.classList.add('selected');
-            else slot.classList.remove('selected');
+        function handleInvite() {
+            if (!groupId) return;
+
+            const inviteText = `Hey! Let's sync up our schedules. I'm using FriendSync to make it super easy. 🗓️✨\n\nJoin my group with this ID: ${groupId}\n\nCheck out the site here:\nhttps://friendsync123.netlify.app/#`;
+            
+            const shareData = {
+                title: 'FriendSync Invite',
+                text: inviteText,
+            };
+
+            if (navigator.share) {
+                navigator.share(shareData).catch(err => console.error("Share failed:", err));
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = inviteText;
+                textArea.style.position = "fixed"; 
+                textArea.style.top = "-9999px";
+                textArea.style.left = "-9999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    inviteBtn.textContent = 'Copied!';
+                    setTimeout(() => { inviteBtn.textContent = 'Invite'; }, 2000);
+                } catch (err) {
+                    window.prompt("Copy this to share:", inviteText);
+                }
+                document.body.removeChild(textArea);
+            }
         }
 
-        async function saveUserSchedule() {
-            if (!user) return;
 
-            saveScheduleBtn.disabled = true;
-            saveScheduleBtn.textContent = 'Saving...';
-            saveError.classList.add('opacity-0');
+        function toggleSlot(slot) {
+            if (isSelecting) {
+                 slot.classList.add('selected');
+                 slot.classList.remove('free-hour');
+            }
+            else {
+                slot.classList.remove('selected');
+            }
+        }
 
-            const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
-                                    .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
-            
+        async function saveScheduleToDatabase(schedule) {
+            if (!user) return false;
+
+            userSchedule = schedule;
+
             const { data: memberships, error: memberError } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
 
             if (memberError) {
                 console.error("Error fetching user's groups:", memberError);
-                saveError.textContent = 'Error!';
-                saveError.classList.remove('opacity-0');
-                saveScheduleBtn.disabled = false;
-                saveScheduleBtn.textContent = 'Save Schedule';
-                return;
+                return false;
             }
 
             if (memberships.length > 0) {
                 const upsertData = memberships.map(m => ({
                     user_id: user.id,
                     group_id: m.group_id,
-                    schedule: newSchedule
+                    schedule: schedule
                 }));
                 const { error: upsertError } = await db.from('schedules').upsert(upsertData);
-                 if (upsertError) {
+                if (upsertError) {
                     console.error("Error saving global schedule: ", upsertError);
-                    saveError.textContent = 'Save Failed!';
-                    saveError.classList.remove('opacity-0');
-                 } else {
-                    userSchedule = newSchedule;
-                    console.log("Global schedule saved!");
-                    saveFeedback.classList.remove('opacity-0');
-                    setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
-                 }
-            } else { // Handle case where user is in no groups yet
-                userSchedule = newSchedule;
-                console.log("Schedule updated locally. Will sync on joining a group.");
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        async function saveUserSchedule() {
+            saveScheduleBtn.disabled = true;
+            saveScheduleBtn.textContent = 'Saving...';
+            saveError.classList.add('opacity-0');
+
+            document.querySelectorAll('.time-slot.free-hour').forEach(slot => slot.classList.remove('free-hour'));
+            const newSchedule = Array.from(document.querySelectorAll('.time-slot.selected'))
+                .map(slot => ({ day: slot.dataset.day, time: slot.dataset.time }));
+            
+            const success = await saveScheduleToDatabase(newSchedule);
+
+            if (success) {
+                console.log("Global schedule saved!");
                 saveFeedback.classList.remove('opacity-0');
                 setTimeout(() => saveFeedback.classList.add('opacity-0'), 2000);
+            } else {
+                saveError.textContent = 'Save Failed!';
+                saveError.classList.remove('opacity-0');
+                setTimeout(() => saveError.classList.add('opacity-0'), 3000);
             }
             
             saveScheduleBtn.disabled = false;
-            saveScheduleBtn.textContent = 'Save Schedule';
+            saveScheduleBtn.textContent = 'Save';
         }
 
         async function loadUserSchedule() {
@@ -573,7 +661,9 @@
         }
 
         function updateTimetableUI() {
-            document.querySelectorAll('.time-slot').forEach(slot => slot.classList.remove('selected'));
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected', 'free-hour');
+            });
             userSchedule.forEach(entry => {
                 const slot = document.querySelector(`.time-slot[data-day="${entry.day}"][data-time="${entry.time}"]`);
                 if (slot) slot.classList.add('selected');
@@ -800,52 +890,63 @@
                 setTimeout(() => saveError.classList.add('opacity-0'), 3000);
                 return;
             }
+            
+            uploadIcsBtn.disabled = true;
+            uploadIcsBtn.textContent = 'Processing...';
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const jcalData = ICAL.parse(e.target.result);
                     const vcalendar = new ICAL.Component(jcalData);
                     const vevents = vcalendar.getAllSubcomponents('vevent');
                     
-                    const newSchedule = new Set(); // Use a Set to avoid duplicates
+                    const busySlots = new Set();
                     const dayMap = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
                     vevents.forEach(vevent => {
                         const event = new ICAL.Event(vevent);
-                        
-                        // FIX: Use the converted JS Date object to get the local day and hour
                         const jsDate = event.startDate.toJSDate();
                         const day = dayMap[jsDate.getDay()];
                         const hour = jsDate.getHours();
 
                         if (day && hour >= startTime && hour < endTime) {
                             const time = `${String(hour).padStart(2, '0')}:00`;
-                            // Add a unique string to the set to prevent duplicate time slots
-                            newSchedule.add(`${day}|${time}`);
+                            busySlots.add(`${day}|${time}`);
                         }
                     });
                     
-                    // Convert the set of unique strings back to an array of objects
-                    userSchedule = Array.from(newSchedule).map(item => {
+                    const importedSchedule = Array.from(busySlots).map(item => {
                         const [day, time] = item.split('|');
                         return { day, time };
                     });
-                    
-                    updateTimetableUI();
-                    
-                    saveFeedback.textContent = 'Preview loaded. Click Save!';
-                    saveFeedback.classList.remove('opacity-0');
-                    setTimeout(() => {
-                        saveFeedback.classList.add('opacity-0');
-                        saveFeedback.textContent = '✓';
-                    }, 3000);
 
+                    const success = await saveScheduleToDatabase(importedSchedule);
+
+                    if (success) {
+                        updateTimetableUI(); 
+                        document.querySelectorAll('.time-slot:not(.selected)').forEach(slot => slot.classList.add('free-hour'));
+                        
+                        saveFeedback.textContent = 'Imported & Saved!';
+                        saveFeedback.classList.remove('opacity-0');
+                        setTimeout(() => {
+                            saveFeedback.classList.add('opacity-0');
+                            saveFeedback.textContent = '✓';
+                        }, 3000);
+                    } else {
+                        saveError.textContent = 'Import failed to save!';
+                        saveError.classList.remove('opacity-0');
+                        setTimeout(() => saveError.classList.add('opacity-0'), 3000);
+                    }
                 } catch (err) {
                     console.error("Error parsing ICS file:", err);
                     saveError.textContent = 'Invalid ICS file!';
                     saveError.classList.remove('opacity-0');
                     setTimeout(() => saveError.classList.add('opacity-0'), 3000);
+                } finally {
+                    uploadIcsBtn.disabled = false;
+                    uploadIcsBtn.textContent = 'Upload & Auto-Save';
+                    icsUploadInput.value = '';
                 }
             };
             reader.readAsText(file);
@@ -861,3 +962,4 @@
     </script>
 </body>
 </html>
+
