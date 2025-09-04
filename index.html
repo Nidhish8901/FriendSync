@@ -562,11 +562,11 @@
             userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
             try {
-                await Promise.all([
-                    loadUserScheduleAndApplyToGroup(),
-                    fetchAllSchedules(),
-                    fetchGroupMembers()
-                ]);
+                // Fetch data sequentially to avoid race conditions and improve stability
+                await loadUserScheduleAndApplyToGroup();
+                await fetchAllSchedules();
+                await fetchGroupMembers();
+                
                 listenToAllSchedules();
                 showView('app-container');
             } catch (error) {
@@ -721,10 +721,7 @@
             uploadIcsBtn.addEventListener('click', handleIcsUpload);
             inviteBtn.addEventListener('click', handleInvite);
             aboutBtn.addEventListener('click', () => showView('about-view'));
-            closeAboutBtn.addEventListener('click', () => {
-                if(groupId) showView('app-container');
-                else showView('group-dashboard-view');
-            });
+            closeAboutBtn.addEventListener('click', () => showView('group-dashboard-view'));
             howToBtn.addEventListener('click', () => showView('how-to-view'));
             closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
 
