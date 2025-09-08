@@ -156,41 +156,84 @@
 
     <!-- Group Dashboard View -->
     <div id="group-dashboard-view" class="modal-backdrop hidden">
-        <div class="tech-card p-6 sm:p-8 w-full max-w-lg mx-4">
-            <h2 class="text-3xl text-center font-bold mb-4 tech-header font-script">FriendSync</h2>
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-t border-gray-700 pt-4">
-                 <h3 class="text-2xl font-bold tech-header text-center sm:text-left">Your Groups</h3>
-                 <div class="flex items-center space-x-2 flex-wrap justify-center">
-                     <button id="how-to-btn" class="inline-flex items-center text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Get Started
-                    </button>
-                    <button id="about-btn" class="inline-flex items-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        About
-                    </button>
-                    <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
-                 </div>
-            </div>
-           
-            <div id="user-groups-list" class="space-y-3 max-h-48 overflow-y-auto mb-6 pr-2">
-                <!-- User groups will be dynamically inserted here -->
+        <div class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+            <!-- Left Column: Groups -->
+            <div class="tech-card p-6 sm:p-8 w-full lg:w-1/3 lg:max-w-md self-start">
+                <h2 class="text-3xl text-center font-bold mb-4 tech-header font-script">FriendSync</h2>
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-t border-gray-700 pt-4">
+                     <h3 class="text-2xl font-bold tech-header text-center sm:text-left">Your Groups</h3>
+                     <div class="flex items-center space-x-2 flex-wrap justify-center">
+                         <button id="how-to-btn" class="inline-flex items-center text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Get Started
+                        </button>
+                        <button id="about-btn" class="inline-flex items-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 pl-2 pr-3 rounded-md transition-colors shadow-md hover:shadow-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            About
+                        </button>
+                        <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
+                     </div>
+                </div>
+               
+                <div id="user-groups-list" class="space-y-3 max-h-48 overflow-y-auto mb-6 pr-2">
+                    <!-- User groups will be dynamically inserted here -->
+                </div>
+    
+                <div class="border-t border-gray-700 pt-6">
+                     <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
+                     <div class="space-y-4">
+                        <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                            <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join</button>
+                            <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create</button>
+                        </div>
+                    </div>
+                    <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+                </div>
             </div>
 
-            <div class="border-t border-gray-700 pt-6">
-                 <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
-                 <div class="space-y-4">
-                    <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
-                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                        <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join</button>
-                        <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create</button>
+            <!-- Right Column: Timetable -->
+            <div class="tech-card p-4 sm:p-6 w-full lg:w-2/3">
+                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+                    <h2 class="text-xl sm:text-2xl font-bold">My Global Schedule</h2>
+                    <div class="flex items-center flex-wrap gap-2">
+                        <div class="relative flex items-center">
+                            <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
+                                Save
+                            </button>
+                             <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
+                             <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
+                        </div>
                     </div>
                 </div>
-                <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+                
+                <div class="border-t border-b border-gray-700 my-4 py-4">
+                    <p class="text-gray-400 mb-2 text-sm">Quickly import your schedule by uploading an ICS file.</p>
+                    <div class="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
+                        <input type="file" id="ics-upload-input" accept=".ics" class="block w-full text-sm text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"/>
+                        <button id="upload-ics-btn" class="w-full sm:w-auto text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition-colors flex-shrink-0">Upload & Auto-Save</button>
+                    </div>
+                     <div class="mt-3 p-3 bg-indigo-900/50 border border-indigo-700 rounded-lg text-center">
+                        <p class="text-sm text-indigo-200">Need to create an ICS file from your timetable?</p>
+                        <a href="https://chrono2ics.vercel.app/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center mt-2 px-3 py-1 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-500 transition-colors text-sm">
+                            Use Chrono2ICS Tool
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <p class="text-gray-400 mb-4 text-sm">Or, set your availability manually. It will apply to all your groups.</p>
+                <div id="timetable" class="overflow-x-auto rounded-lg border border-gray-700"></div>
+
+                <div class="flex justify-end mt-4">
+                    <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Download ICS</button>
+                </div>
             </div>
         </div>
     </div>
@@ -209,24 +252,24 @@
                 <div class="bg-gray-800/50 p-4 rounded-lg flex items-start space-x-4 border border-gray-700">
                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-300 font-bold text-lg">1</div>
                     <div>
-                        <h4 class="font-semibold text-white text-lg">Create or Join a Group</h4>
-                        <p class="text-gray-400 mt-1">Enter a unique name to create a new group, or type in an existing Group ID to join friends who have already set one up.</p>
+                        <h4 class="font-semibold text-white text-lg">Set Your Schedule</h4>
+                        <p class="text-gray-400 mt-1">First, use the timetable on the main dashboard to set your general availability. This is your global schedule that will be used for all groups.</p>
                     </div>
                 </div>
                 <!-- Step 2 -->
                 <div class="bg-gray-800/50 p-4 rounded-lg flex items-start space-x-4 border border-gray-700">
                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-300 font-bold text-lg">2</div>
                     <div>
-                        <h4 class="font-semibold text-white text-lg">Select Your Group</h4>
-                        <p class="text-gray-400 mt-1">From your dashboard, simply click on any group from your list. This will take you to that group's shared schedule view.</p>
+                        <h4 class="font-semibold text-white text-lg">Create or Join a Group</h4>
+                        <p class="text-gray-400 mt-1">Enter a unique name to create a new group, or type in an existing Group ID to join friends who have already set one up.</p>
                     </div>
                 </div>
                 <!-- Step 3 -->
                 <div class="bg-gray-800/50 p-4 rounded-lg flex items-start space-x-4 border border-gray-700">
                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-300 font-bold text-lg">3</div>
                     <div>
-                        <h4 class="font-semibold text-white text-lg">Set Your Schedule</h4>
-                        <p class="text-gray-400 mt-1">Upload an ICS calendar file for a quick import, or manually click and drag on the timetable to mark your busy hours. Your schedule is saved globally across all your groups!</p>
+                        <h4 class="font-semibold text-white text-lg">Select Your Group</h4>
+                        <p class="text-gray-400 mt-1">From your dashboard, simply click on any group from your list. This will take you to that group's availability checker.</p>
                     </div>
                 </div>
                 <!-- Step 4 -->
@@ -275,56 +318,15 @@
     <div id="app-container" class="hidden container mx-auto p-4 md:p-8 max-w-7xl">
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-5xl font-bold tech-header font-script">FriendSync</h1>
-            <p class="text-md md:text-lg text-gray-300 mt-2">Coordinate schedules with your friends effortlessly.</p>
-            <div class="mt-4 w-full max-w-md mx-auto space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
+            <p class="text-md md:text-lg text-gray-300 mt-2">Checking group availability.</p>
+            <div class="mt-4 w-full max-w-lg mx-auto space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
                  <div id="groupInfo" class="w-full text-center p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
-                <div id="userInfo" class="w-full text-center p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
+                <button id="back-to-dashboard-btn" class="w-full md:w-auto text-sm bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Back to Dashboard</button>
             </div>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Left Column: Your Schedule -->
-            <div class="lg:col-span-2 tech-card p-4 sm:p-6">
-                <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
-                    <h2 class="text-xl sm:text-2xl font-bold">My Global Schedule</h2>
-                    <div class="flex items-center flex-wrap gap-2">
-                        <div class="relative flex items-center">
-                            <button id="save-schedule-btn" class="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">
-                                Save
-                            </button>
-                             <span id="save-feedback" class="ml-2 text-green-400 opacity-0 transition-opacity text-lg">✓</span>
-                             <span id="save-error" class="ml-2 text-red-400 opacity-0 transition-opacity text-sm font-mono"></span>
-                        </div>
-                        <button id="switch-group-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Switch Group</button>
-                    </div>
-                </div>
-                
-                <div class="border-t border-b border-gray-700 my-4 py-4">
-                    <p class="text-gray-400 mb-2 text-sm">Quickly import your schedule by uploading an ICS file.</p>
-                    <div class="flex flex-col sm:flex-row items-center sm:space-x-2 space-y-2 sm:space-y-0">
-                        <input type="file" id="ics-upload-input" accept=".ics" class="block w-full text-sm text-gray-400 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"/>
-                        <button id="upload-ics-btn" class="w-full sm:w-auto text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-3 rounded-md transition-colors flex-shrink-0">Upload & Auto-Save</button>
-                    </div>
-                     <div class="mt-3 p-3 bg-indigo-900/50 border border-indigo-700 rounded-lg text-center">
-                        <p class="text-sm text-indigo-200">Need to create an ICS file from your timetable?</p>
-                        <a href="https://chrono2ics.vercel.app/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center mt-2 px-3 py-1 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-500 transition-colors text-sm">
-                            Use Chrono2ICS Tool
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-
-                <p class="text-gray-400 mb-4 text-sm">Or, set your availability manually. It will apply to all your groups.</p>
-                <div id="timetable" class="overflow-x-auto rounded-lg border border-gray-700"></div>
-
-                <div class="flex justify-end mt-4">
-                    <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Download ICS</button>
-                </div>
-            </div>
-
-            <!-- Right Column: Check Availability -->
+        <main class="max-w-4xl mx-auto w-full">
+            <!-- Availability Tools -->
             <div class="tech-card p-4 sm:p-6">
                 <h2 class="text-xl sm:text-2xl font-bold mb-4">Check Availability at a Specific Time</h2>
                 <div class="space-y-4">
@@ -415,7 +417,7 @@
         const groupIdInput = document.getElementById('group-id-input');
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
-        const switchGroupBtn = document.getElementById('switch-group-btn');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
         const downloadIcsBtn = document.getElementById('download-ics-btn');
         const uploadIcsBtn = document.getElementById('upload-ics-btn');
         const icsUploadInput = document.getElementById('ics-upload-input');
@@ -432,7 +434,6 @@
         const freeFriendsList = document.getElementById('free-friends-list');
         const groupMembersList = document.getElementById('group-members-list');
         const userGroupsList = document.getElementById('user-groups-list');
-        const userInfoDiv = document.getElementById('userInfo');
         const groupInfoDiv = document.getElementById('groupInfo');
         const friendSelect = document.getElementById('friend-select');
         const friendDaySelect = document.getElementById('friend-day-select');
@@ -497,6 +498,17 @@
             }
         }
 
+        async function loadGlobalScheduleForDashboard() {
+            if (!user) return;
+            const { data, error } = await db.from('schedules').select('schedule').eq('user_id', user.id).limit(1);
+            if (error) {
+                console.error("Error fetching global schedule for dashboard:", error);
+                return;
+            }
+            userSchedule = (data && data.length > 0) ? data[0].schedule : [];
+            updateTimetableUI();
+        }
+
         async function showGroupDashboard() {
             if (realtimeChannel) {
                 db.removeChannel(realtimeChannel);
@@ -507,7 +519,9 @@
             
             showView('group-dashboard-view');
             loadingOverlay.classList.remove('hidden');
+            
             const { data, error } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
+            
             loadingOverlay.classList.add('hidden');
 
             if (error) {
@@ -515,6 +529,7 @@
                 return;
             }
             renderUserGroups(data.map(g => g.group_id));
+            await loadGlobalScheduleForDashboard();
         }
 
         // OPTIMIZATION: Use a single innerHTML call and event delegation for faster rendering and setup.
@@ -563,9 +578,7 @@
             freeFriendsList.innerHTML = '<p class="text-gray-400">Results will be displayed here.</p>';
             friendFreeTimesList.innerHTML = '<p class="text-gray-400">Select friends and a day to see their common free slots.</p>';
 
-            const userName = user.user_metadata?.full_name || 'Unknown User';
             groupInfoDiv.innerHTML = `Group ID: <span class="font-semibold font-mono">${groupId}</span>`;
-            userInfoDiv.innerHTML = `Welcome, <span class="font-semibold">${userName}</span>`;
 
             try {
                 // OPTIMIZATION: Using Promise.all to fetch data concurrently.
@@ -594,7 +607,7 @@
 
             const scheduleToApply = (anySchedule && anySchedule.length > 0) ? anySchedule[0].schedule : [];
             userSchedule = scheduleToApply;
-            updateTimetableUI();
+            // No need to update the UI here as it's not visible on this screen
 
             // Now, ensure this schedule is associated with the current group for this user.
             const { error: upsertError } = await db.from('schedules').upsert({ user_id: user.id, group_id: groupId, schedule: scheduleToApply });
@@ -680,8 +693,6 @@
                     joinGroupBtn.disabled = false;
                 }
             };
-            
-            switchGroupBtn.onclick = showGroupDashboard;
         }
         
         function generateTimetable() {
@@ -732,6 +743,7 @@
             closeAboutBtn.addEventListener('click', () => showView('group-dashboard-view'));
             howToBtn.addEventListener('click', () => showView('how-to-view'));
             closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
+            backToDashboardBtn.addEventListener('click', showGroupDashboard);
 
             userGroupsList.addEventListener('click', handleUserGroupClick);
 
