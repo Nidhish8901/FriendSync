@@ -172,13 +172,14 @@
                        </svg>
                        About
                    </button>
+                   <button id="view-groups-btn" class="text-sm bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Manage Groups</button>
                    <button id="dashboard-sign-out-btn" class="text-sm bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Sign Out</button>
                 </div>
             </header>
 
-            <div class="flex flex-col lg:flex-row gap-8">
-                <!-- Timetable Column -->
-                <div class="tech-card p-4 sm:p-6 w-full lg:w-2/3">
+            <div class="flex flex-col items-center">
+                <!-- Timetable -->
+                <div class="tech-card p-4 sm:p-6 w-full max-w-4xl">
                     <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
                         <h2 class="text-xl sm:text-2xl font-bold">My Global Schedule</h2>
                         <div class="flex items-center flex-wrap gap-2">
@@ -216,33 +217,37 @@
                         <button id="download-ics-btn" class="text-sm bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Download ICS</button>
                     </div>
                 </div>
-    
-                <!-- Groups Column -->
-                <div class="tech-card p-6 sm:p-8 w-full lg:w-1/3 lg:max-w-md self-start">
-                    <div class="flex flex-col sm:flex-row justify-center sm:items-center gap-4 mb-6 pt-4">
-                         <h3 class="text-2xl font-bold tech-header text-center sm:text-left">Your Groups</h3>
-                    </div>
-                   
-                    <div id="user-groups-list" class="space-y-3 max-h-48 overflow-y-auto mb-6 pr-2">
-                        <!-- User groups will be dynamically inserted here -->
-                    </div>
-        
-                    <div class="border-t border-gray-700 pt-6">
-                         <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
-                         <div class="space-y-4">
-                            <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
-                            <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                                <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join</button>
-                                <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create</button>
-                            </div>
-                        </div>
-                        <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
-                    </div>
-                </div>
             </div>
         </div>
     </div>
     
+    <!-- Groups Page View -->
+    <div id="groups-view" class="modal-backdrop hidden">
+        <div class="tech-card p-6 sm:p-8 w-full max-w-md mx-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold tech-header">Your Groups</h2>
+                <button id="groups-back-to-dashboard-btn" class="text-sm bg-gray-600 hover:bg-gray-700 text-white font-semibold py-1 px-3 rounded-md transition-colors">Back to Dashboard</button>
+            </div>
+           
+            <div id="user-groups-list" class="space-y-3 max-h-48 overflow-y-auto mb-6 pr-2">
+                <!-- User groups will be dynamically inserted here -->
+            </div>
+
+            <div class="border-t border-gray-700 pt-6">
+                 <h3 class="text-lg font-semibold mb-3 text-center text-gray-300">Join or Create a New Group</h3>
+                 <div class="space-y-4">
+                    <input id="group-id-input" type="text" placeholder="Enter Group ID" class="w-full px-4 py-2 tech-input">
+                    <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                        <button id="join-group-btn" class="w-full font-bold py-2 px-4 tech-button-primary">Join</button>
+                        <button id="create-group-btn" class="w-full font-bold py-2 px-4 tech-button-secondary">Create</button>
+                    </div>
+                </div>
+                <p id="group-error" class="text-red-400 text-sm mt-4 h-4 text-center font-mono"></p>
+            </div>
+        </div>
+    </div>
+
+
     <!-- How To Get Started View -->
     <div id="how-to-view" class="modal-backdrop hidden">
         <div class="tech-card about-card-custom p-8 w-full max-w-2xl text-center relative mx-4 my-auto">
@@ -265,8 +270,8 @@
                 <div class="bg-gray-800/50 p-4 rounded-lg flex items-start space-x-4 border border-gray-700">
                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-300 font-bold text-lg">2</div>
                     <div>
-                        <h4 class="font-semibold text-white text-lg">Create or Join a Group</h4>
-                        <p class="text-gray-400 mt-1">Enter a unique name to create a new group, or type in an existing Group ID to join friends who have already set one up.</p>
+                        <h4 class="font-semibold text-white text-lg">Manage Your Groups</h4>
+                        <p class="text-gray-400 mt-1">Click "Manage Groups" on the dashboard. From there, enter a unique name to create a new group, or type in an existing Group ID to join friends.</p>
                     </div>
                 </div>
                 <!-- Step 3 -->
@@ -274,7 +279,7 @@
                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-600/30 flex items-center justify-center text-blue-300 font-bold text-lg">3</div>
                     <div>
                         <h4 class="font-semibold text-white text-lg">Select Your Group</h4>
-                        <p class="text-gray-400 mt-1">From your dashboard, simply click on any group from your list. This will take you to that group's availability checker.</p>
+                        <p class="text-gray-400 mt-1">From the groups page, simply click on any group from your list. This will take you to that group's availability checker.</p>
                     </div>
                 </div>
                 <!-- Step 4 -->
@@ -327,7 +332,7 @@
             <div class="mt-4 w-full max-w-xl mx-auto space-y-2 md:space-y-0 md:space-x-4 flex flex-col md:flex-row items-center justify-center">
                  <div id="groupInfo" class="w-full text-center p-3 bg-gray-800 border border-gray-600 text-gray-300 text-sm rounded-lg"></div>
                 <button id="app-view-about-btn" class="w-full md:w-auto text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">About</button>
-                <button id="back-to-dashboard-btn" class="w-full md:w-auto text-sm bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Back to Dashboard</button>
+                <button id="back-to-groups-btn" class="w-full md:w-auto text-sm bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Back to Groups</button>
             </div>
         </header>
 
@@ -410,10 +415,11 @@
         const loadingOverlay = document.getElementById('loading-overlay');
         const loginView = document.getElementById('login-view');
         const groupDashboardView = document.getElementById('group-dashboard-view');
+        const groupsView = document.getElementById('groups-view');
         const appContainer = document.getElementById('app-container');
         const aboutView = document.getElementById('about-view');
         const howToView = document.getElementById('how-to-view');
-        const views = [loginView, groupDashboardView, appContainer, aboutView, howToView];
+        const views = [loginView, groupDashboardView, groupsView, appContainer, aboutView, howToView];
 
         const googleLoginBtn = document.getElementById('google-login-btn');
         const dashboardSignOutBtn = document.getElementById('dashboard-sign-out-btn');
@@ -423,7 +429,9 @@
         const groupIdInput = document.getElementById('group-id-input');
         const joinGroupBtn = document.getElementById('join-group-btn');
         const createGroupBtn = document.getElementById('create-group-btn');
-        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const backToGroupsBtn = document.getElementById('back-to-groups-btn');
+        const groupsBackToDashboardBtn = document.getElementById('groups-back-to-dashboard-btn');
+        const viewGroupsBtn = document.getElementById('view-groups-btn');
         const downloadIcsBtn = document.getElementById('download-ics-btn');
         const uploadIcsBtn = document.getElementById('upload-ics-btn');
         const icsUploadInput = document.getElementById('ics-upload-input');
@@ -525,10 +533,13 @@
             allSchedules = {};
             
             showView('group-dashboard-view');
+            await loadGlobalScheduleForDashboard();
+        }
+
+        async function showGroupsPage() {
+            showView('groups-view');
             loadingOverlay.classList.remove('hidden');
-            
             const { data, error } = await db.from('group_memberships').select('group_id').eq('user_id', user.id);
-            
             loadingOverlay.classList.add('hidden');
 
             if (error) {
@@ -536,8 +547,8 @@
                 return;
             }
             renderUserGroups(data.map(g => g.group_id));
-            await loadGlobalScheduleForDashboard();
         }
+
 
         // OPTIMIZATION: Use a single innerHTML call and event delegation for faster rendering and setup.
         function renderUserGroups(groups) {
@@ -572,7 +583,7 @@
                 if (user && gId) {
                     await db.from('group_memberships').delete().match({ user_id: user.id, group_id: gId });
                 }
-                await showGroupDashboard();
+                await showGroupsPage(); // Refresh the groups page
             }
         }
 
@@ -651,7 +662,7 @@
 
                     groupError.textContent = "";
                     groupIdInput.value = "";
-                    await showGroupDashboard();
+                    await showGroupsPage(); // Refresh groups page
                 } catch (err) {
                     console.error("Error joining group:", err);
                     groupError.textContent = "Failed to join group.";
@@ -689,7 +700,7 @@
 
                         groupError.textContent = "";
                         groupIdInput.value = "";
-                        await showGroupDashboard();
+                        await showGroupsPage(); // Refresh groups page
                     }
                 } catch (err) {
                     console.error("Error creating group:", err);
@@ -746,18 +757,26 @@
             downloadIcsBtn.addEventListener('click', downloadIcsFile);
             uploadIcsBtn.addEventListener('click', handleIcsUpload);
             inviteBtn.addEventListener('click', handleInvite);
+            viewGroupsBtn.addEventListener('click', showGroupsPage);
+            
             aboutBtn.addEventListener('click', () => showView('about-view'));
             appViewAboutBtn.addEventListener('click', () => showView('about-view'));
+            
             closeAboutBtn.addEventListener('click', () => {
                 if (groupId) {
                     showView('app-container');
-                } else {
+                } else if (!groupsView.classList.contains('hidden')) {
+                    showView('groups-view');
+                }
+                else {
                     showView('group-dashboard-view');
                 }
             });
             howToBtn.addEventListener('click', () => showView('how-to-view'));
             closeHowToBtn.addEventListener('click', () => showView('group-dashboard-view'));
-            backToDashboardBtn.addEventListener('click', showGroupDashboard);
+            backToGroupsBtn.addEventListener('click', showGroupsPage);
+            groupsBackToDashboardBtn.addEventListener('click', showGroupDashboard);
+
 
             userGroupsList.addEventListener('click', handleUserGroupClick);
 
