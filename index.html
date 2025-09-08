@@ -750,7 +750,7 @@
                 if(isMouseDown) { isMouseDown = false; } 
             });
             checkBtn.addEventListener('click', handleCheckAvailability);
-            checkFriendBtn.addEventListener('click', checkCommonAvailability);
+            checkFriendBtn.addEventListener('click', handleCheckCommonAvailability);
         }
 
         function handleInvite() {
@@ -889,13 +889,20 @@
                     allSchedules[record.user_id] = record.schedule || [];
                 }
                 
-                // If availability results are showing, refresh them with the new data
-                if (freeFriendsList.querySelector('ul, div')) {
-                    checkAvailability();
-                }
-                if (friendFreeTimesList.querySelector('ul, div')) {
-                    checkCommonAvailability();
-                }
+                // If availability results are showing, refresh them with the new data.
+                // Wrap in an async IIFE with error handling to prevent crashes.
+                (async () => {
+                    try {
+                        if (freeFriendsList.querySelector('ul, div')) {
+                            await checkAvailability();
+                        }
+                        if (friendFreeTimesList.querySelector('ul, div')) {
+                            checkCommonAvailability();
+                        }
+                    } catch (error) {
+                        console.error("Error during real-time availability refresh:", error);
+                    }
+                })();
               })
               .on('postgres_changes', { event: '*', schema: 'public', table: 'group_memberships', filter: `group_id=eq.${groupId}` }, payload => {
                 console.log('Change received for members!', payload);
@@ -917,6 +924,22 @@
             } finally {
                 checkBtn.disabled = false;
                 checkBtn.textContent = "Check Who's Free";
+            }
+        }
+
+        // Add a new handler for the second button for consistency and robustness
+        async function handleCheckCommonAvailability() {
+            checkFriendBtn.disabled = true;
+            checkFriendBtn.textContent = 'Finding...';
+            try {
+                // This function is synchronous, but we use the async handler pattern
+                checkCommonAvailability();
+            } catch (e) {
+                console.error("Failed to find common slots:", e);
+                friendFreeTimesList.innerHTML = '<p class="text-red-400 font-mono">Error finding slots.</p>';
+            } finally {
+                checkFriendBtn.disabled = false;
+                checkFriendBtn.textContent = 'Find Common Free Times';
             }
         }
 
@@ -1245,3 +1268,4 @@
     </script>
 </body>
 </html>
+
